@@ -1,41 +1,24 @@
-const STORAGE = 'merk-of-duty.profile.v1';
-const defaults = { name: 'GUEST OPERATIVE', level: 1, xp: 0, wins: 0, mode: 'normal', quality: 'hd', fov: 90, aim: 'TAP TO AIM', split: true, hud: true };
-const load = () => { try { return { ...defaults, ...JSON.parse(localStorage.getItem(STORAGE) || '{}') }; } catch { return { ...defaults }; } };
-const save = (p) => { try { localStorage.setItem(STORAGE, JSON.stringify(p)); } catch {} };
-const p = load();
-const $ = (q) => document.querySelector(q);
-const hub = $('#merk-hub');
-const modeNames = { normal: 'TEAM DEATHMATCH · 10 MIN', ranked: 'RANKED TDM · 10 MIN', hardcore: 'HARDCORE TDM · 10 MIN', zombies: 'ZOMBIES · INFINITE ROUNDS' };
-function render() {
-  $('#merk-player-line').textContent = `${p.name} · LEVEL ${String(p.level).padStart(2, '0')}`;
-  $('#merk-rank-badge').textContent = String(p.level).padStart(2, '0');
-  $('#merk-rank-xp').textContent = `${p.xp.toLocaleString()} / 1,000 XP`;
-  $('#merk-leader-score').textContent = `${p.wins} WINS`;
-  $('#merk-rank-progress').style.width = `${Math.min(100, p.xp / 10)}%`;
-  $('#merk-match-summary').textContent = modeNames[p.mode];
-  $('#merk-quality').value = p.quality; $('#merk-fov').value = p.fov; $('#merk-fov-out').value = `${p.fov}°`; $('#merk-fov-out').textContent = `${p.fov}°`;
-  $('#merk-aim').value = p.aim; $('#merk-split').checked = p.split; $('#merk-hud').checked = p.hud;
-  document.querySelectorAll('.merk-mode').forEach(b => b.classList.toggle('is-active', b.dataset.mode === p.mode));
+const STORAGE = 'merk-of-duty.profile.v2';
+const defaults = { name:'GUEST OPERATIVE', level:1, xp:0, wins:0, mode:'normal', quality:'hd', fov:90, aim:'TAP TO AIM', split:true, hud:true, sensitivity:1, minimap:100, hitmarkers:'ALL', layout:'STANDARD', audio:'HEADPHONES', vibration:true, fps60:true };
+const load=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(STORAGE)||'{}')}}catch{return {...defaults}}};
+const save=p=>{try{localStorage.setItem(STORAGE,JSON.stringify(p))}catch{}};
+const p=load(), $=q=>document.querySelector(q), hub=$('#merk-hub'), drawer=$('#merk-ops-drawer'), loading=$('#merk-loading');
+const modeNames={normal:'NORMAL MULTIPLAYER · AUTO MATCHMAKING',ranked:'RANKED · SKILL MATCHMAKING',hardcore:'HARDCORE · AUTO MATCHMAKING',zombies:'ZOMBIES · CO-OP MATCHMAKING'};
+function render(){
+  $('#merk-player-line').textContent=`${p.name} · LEVEL ${String(p.level).padStart(2,'0')}`; $('#merk-rank-badge').textContent=String(p.level).padStart(2,'0'); $('#merk-leader-score').textContent=`${p.wins} WINS`;
+  $('#merk-rank-xp').textContent=`${p.xp.toLocaleString()} / 1,000 XP`; $('#merk-rank-progress')?.style.setProperty('width',`${Math.min(100,p.xp/10)}%`); $('#merk-rank-card').textContent=p.mode==='ranked'?'ROOKIE I // 0 RP':'READY // AUTO MATCHMAKING';
+  $('#merk-quality').value=p.quality; $('#merk-fov').value=p.fov; $('#merk-fov-out').value=`${p.fov}°`; $('#merk-fov-out').textContent=`${p.fov}°`; $('#merk-aim').value=p.aim; $('#merk-split').checked=p.split; $('#merk-hud').checked=p.hud;
+  $('#merk-sensitivity').value=p.sensitivity; $('#merk-sensitivity-out').textContent=`${Number(p.sensitivity).toFixed(1)}×`; $('#merk-minimap').value=p.minimap; $('#merk-minimap-out').textContent=`${p.minimap}%`; $('#merk-hitmarkers').value=p.hitmarkers; $('#merk-layout').value=p.layout; $('#merk-audio').value=p.audio; $('#merk-vibration').checked=p.vibration; $('#merk-60fps').checked=p.fps60;
+  document.querySelectorAll('.merk-mode').forEach(b=>b.classList.toggle('is-active',b.dataset.mode===p.mode));
 }
-function openHub() { hub.hidden = false; render(); }
-function closeHub() { hub.hidden = true; }
-function bind() {
-  document.querySelectorAll('[data-merk-tab]').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.merk-tab').forEach(x => x.classList.toggle('is-active', x === b)); document.querySelectorAll('[data-merk-view]').forEach(v => v.classList.toggle('is-active', v.dataset.merkView === b.dataset.merkTab)); }));
-  document.querySelectorAll('.merk-mode').forEach(b => b.addEventListener('click', () => { p.mode = b.dataset.mode; save(p); render(); }));
-  $('#merk-hub-close').addEventListener('click', closeHub);
-  $('#merk-deploy').addEventListener('click', () => { closeHub(); document.querySelector('#fe-load-game')?.click(); });
-  $('#merk-custom').addEventListener('click', () => { alert('Custom Games ready: 10 min → unlimited · 10 → unlimited kills · 20 bots · map selection · weapon bans.'); });
-  $('#merk-signin').addEventListener('click', () => { const name = prompt('Enter your operative name', p.name === defaults.name ? '' : p.name); if (name) { p.name = name.toUpperCase().slice(0, 18); save(p); render(); } });
-  $('#merk-quick-settings').addEventListener('click', () => document.querySelector('[data-merk-tab="settings"]').click());
-  $('#merk-quality').addEventListener('change', e => { p.quality = e.target.value; save(p); });
-  $('#merk-fov').addEventListener('input', e => { p.fov = Number(e.target.value); save(p); render(); });
-  $('#merk-aim').addEventListener('change', e => { p.aim = e.target.value; save(p); });
-  $('#merk-split').addEventListener('change', e => { p.split = e.target.checked; save(p); });
-  $('#merk-hud').addEventListener('change', e => { p.hud = e.target.checked; save(p); document.body.classList.toggle('merk-hud-hidden', !p.hud); });
-  // Open the product hub from the existing title screen without replacing the game shell.
-  document.querySelectorAll('[data-action="class"]').forEach(b => b.insertAdjacentHTML('afterend', '<button type="button" class="fe-btn merk-open-hub">OPERATIONS HUB</button>'));
-  document.querySelectorAll('.merk-open-hub').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openHub(); }));
+function openDrawer(tab='play'){drawer.hidden=false;document.querySelectorAll('.merk-ops-nav button').forEach(b=>b.classList.toggle('is-active',b.dataset.merkTab===tab));document.querySelectorAll('[data-merk-view]').forEach(v=>v.classList.toggle('is-active',v.dataset.merkView===tab));$('#merk-drawer-title').textContent=tab==='play'?'OPERATIONS':tab.toUpperCase();}
+function closeDrawer(){drawer.hidden=true}
+function startLoading(){closeDrawer();hub.hidden=true;loading.hidden=false;const bar=$('#merk-loading-bar'),pct=$('#merk-loading-percent'),cap=$('#merk-loading-caption');let n=0;const captions=['CONNECTING TO TACTICAL NETWORK','ALLOCATING FIRETEAM','SYNCING WEAPON DATA','MATCHMAKING OPERATIVES','LOADING COMBAT SHADERS'];const timer=setInterval(()=>{n=Math.min(96,n+Math.max(1,Math.round(Math.random()*5)));bar.style.width=`${n}%`;pct.textContent=`${n}%`;cap.textContent=captions[Math.min(captions.length-1,Math.floor(n/22))];if(n>=96)clearInterval(timer)},120);document.querySelector('#fe-load-game')?.click();setTimeout(()=>{bar.style.width='100%';pct.textContent='100%';cap.textContent='OPERATIONS READY';setTimeout(()=>{loading.hidden=true},700)},5200)}
+function bind(){
+ document.querySelectorAll('.merk-ops-nav [data-merk-tab],.merk-ops-card[data-merk-tab]').forEach(b=>b.addEventListener('click',()=>openDrawer(b.dataset.merkTab)));
+ $('#merk-hub-close')?.addEventListener('click',closeDrawer); document.querySelectorAll('.merk-mode').forEach(b=>b.addEventListener('click',()=>{p.mode=b.dataset.mode;save(p);render()})); $('#merk-deploy')?.addEventListener('click',startLoading); $('#merk-drawer-deploy')?.addEventListener('click',startLoading); $('#merk-ranked-start')?.addEventListener('click',()=>{p.mode='ranked';save(p);startLoading()});
+ $('#merk-custom')?.addEventListener('click',()=>alert('Custom Games: choose rules and invite your fireteam. Public matchmaking never asks you to pick a map.')); $('#merk-signin')?.addEventListener('click',()=>{const name=prompt('Enter your operative name',p.name===defaults.name?'':p.name);if(name){p.name=name.toUpperCase().slice(0,18);save(p);render()}});
+ const bindVal=(id,key,fn=String)=>$('#'+id)?.addEventListener('change',e=>{p[key]=fn(e.target.value);save(p);render()}); bindVal('merk-quality','quality'); bindVal('merk-aim','aim'); bindVal('merk-hitmarkers','hitmarkers'); bindVal('merk-layout','layout'); bindVal('merk-audio','audio'); bindVal('merk-sensitivity','sensitivity',Number); bindVal('merk-minimap','minimap',Number);
+ $('#merk-fov')?.addEventListener('input',e=>{p.fov=Number(e.target.value);save(p);render()}); $('#merk-split')?.addEventListener('change',e=>{p.split=e.target.checked;save(p)}); $('#merk-hud')?.addEventListener('change',e=>{p.hud=e.target.checked;save(p);document.body.classList.toggle('merk-hud-hidden',!p.hud)}); $('#merk-vibration')?.addEventListener('change',e=>{p.vibration=e.target.checked;save(p)}); $('#merk-60fps')?.addEventListener('change',e=>{p.fps60=e.target.checked;save(p)});
 }
-bind();
-render();
-window.merkOfDuty = { profile: p, openHub, closeHub, save };
+bind(); render(); hub.hidden=false; openDrawer('play'); setInterval(()=>{const el=$('#merk-clock');if(el)el.textContent=new Date().toISOString().slice(11,19)+' ZULU'},1000); window.merkOfDuty={profile:p,openHub:()=>{hub.hidden=false},closeHub:()=>{hub.hidden=true}};
