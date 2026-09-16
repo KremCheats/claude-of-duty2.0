@@ -808,6 +808,7 @@ import { ViewBob } from './view-bob.js';
 import { WeaponController } from './weapon-controller.js';
 import { WeaponEffects } from './weapon-effects.js';
 import { EnemyManager } from './enemy-system.js';
+import { ZombieManager } from './zombies.js';
 import { PlayerHealth } from './player-health.js';
 import { FreeForAllMatch } from './free-for-all-match.js';
 import { MedalTracker } from './medals.js';
@@ -843,6 +844,7 @@ import { animateWater } from './lighting.js';
 // Reading `localStorage` throws in a sandboxed frame, hence the guard.
 const mapStorage = (() => { try { return window.localStorage; } catch { return null; } })();
 const activeMap = MAPS[resolveMapId({ search: location.search, storage: mapStorage })];
+const zombiesMode = new URLSearchParams(location.search).get('mode') === 'zombies';
 const activeMapFiles = mapFiles(activeMap);
 rememberMap(mapStorage, activeMap.id);
 
@@ -1439,6 +1441,7 @@ let navigationVisible = false;
 let collisionVisible = false;
 let pathPoints = 0;
 let enemies = null;
+let zombies = null;
 let playerHealth = null;
 let hitmarkerLife = 0;
 let hitmarkerMaxLife = 0.18;
@@ -1865,6 +1868,8 @@ function restartMatch() {
   scoreboardHeld = false;
   scoreboard.classList.remove('visible');
   enemies?.enemies.forEach((enemy) => enemy.spawnAt(enemies.respawnFor(enemy)));
+  zombies?.active.forEach((z) => { z.dead = true; z.root.visible = false; });
+  if (zombiesMode && zombies) { zombies.score.points = zombies.score.kills = zombies.score.headshots = zombies.score.damage = zombies.score.revives = 0; zombies.playerState.dead = false; zombies.playerState.downed = false; zombies.playerState.health = zombies.config.maxHealth; zombies.rounds.start(); }
   playerHealth?.respawn();
   renderMatchUi();
 }
@@ -2066,7 +2071,7 @@ function fireShot({ triggerShotCount = 0 } = {}) {
   const spread = gunplay.spread.sample(spreadState());
   gunplay.spread.onShot();
   weaponEffects.fire(camera, collisionRoot, viewmodel.muzzlePosition(), {
-    targets: enemies?.hitTargets ?? [],
+    targets: [...(enemies?.hitTargets ?? []), ...(zombies?.hitTargets ?? [])],
     weapon: activeWeaponId,
     spread,
     penetration: gunplay.ballistics.penetrateType,
@@ -2076,9 +2081,9 @@ function fireShot({ triggerShotCount = 0 } = {}) {
   let best = null;
   for (const entry of weaponEffects.lastShot?.hits ?? []) {
     if (!entry.enemy) continue;
-    const damaged = enemies?.handlePlayerHit(entry.hit, (region, distance) => (
-      damageAtDistance(gunplay.ballistics, distance) * locationMultiplier(gunplay.ballistics, region) * entry.scale
-    ));
+    const damaged = zombies && entry.hit.object?.userData?.enemyHit?.enemy?.manager === zombies
+      ? zombies.handlePlayerHit(entry.hit, (region, distance) => damageAtDistance(gunplay.ballistics, distance) * locationMultiplier(gunplay.ballistics, region) * entry.scale)
+      : enemies?.handlePlayerHit(entry.hit, (region, distance) => damageAtDistance(gunplay.ballistics, distance) * locationMultiplier(gunplay.ballistics, region) * entry.scale);
     if (!damaged) continue;
     const rank = damaged.killed ? 2 : damaged.region === 'head' ? 1 : 0;
     if (!best || rank > best.rank) best = { ...damaged, rank };
@@ -2871,11 +2876,16 @@ async function start() {
     });
 
     navigation = await navPromise;
+    if (zombiesMode) zombies = new ZombieManager({scene, player, playerHealth, navigation, hints,
+      onRound: (round, stats) => { matchStatus.innerHTML = `ROUND ${round} <small>· ${stats.count} HOSTILES INBOUND</small>`; },
+      onGameOver: () => { matchResult.textContent = 'GAME OVER · ALL OPERATIVES DOWN'; scoreboard.classList.add('visible'); },
+      onHud: (state) => { if (!state) return; matchStatus.innerHTML = `ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}</small>`; }
+    });
     if (navigation?.debugDrawer) scene.add(navigation.debugDrawer);
     if (navigation?.crowdHelper) scene.add(navigation.crowdHelper);
     setDebugVisibility();
 
-    const enemyPromise = (navigation
+    const enemyPromise = (!zombiesMode && navigation
       ? (enemies = new EnemyManager({
           scene,
           navigation,
@@ -3041,6 +3051,7 @@ function tick() {
   }
   if (simulationActive && enemySimulationActive) navigation?.update(1 / 60, dt, 5);
   enemies?.update(dt, { active: simulationActive && enemySimulationActive });
+  if (zombiesMode && simulationActive) zombies?.update(dt);
   playerHealth?.update(simulationActive ? dt : 0);
   if (simulationActive) match.update(dt);
   weaponEffects.update(dt);
