@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="touch-controls.css">
 <link rel="icon" href="social/icon-512.png" type="image/png">
 <link rel="apple-touch-icon" href="social/icon-512.png">
-<title>Claude of Duty: Vibe Slops II</title>
+<title>Merk Of Duty // Black Ops Mobile</title>
 <meta name="description" content="A browser-based first-person shooter running on a Black Ops II map export. No install — click to play.">
 <!-- Social cards. og:image must be absolute: several scrapers still refuse to
      resolve a relative one, and a card with no image renders as a bare URL. -->
@@ -553,6 +553,44 @@
   #match-result { color: var(--fe-accent); font-size: 18px; }
   body.locked #match-status { opacity: 1; }
   body.locked.player-dead #crosshair, body.locked.player-dead #hud-ammo { opacity: 0; transition: none; }
+
+  /* Merk Of Duty mobile product layer */
+  #blocker { background: #030405 url('./merk-loading.png') center/cover no-repeat; }
+  #blocker .fe-backdrop, #blocker .fe-fog, #blocker .fe-glow { opacity: .18; }
+  .merk-hub { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; font-family: var(--fe-ui); color: #edf7ff; }
+  .merk-hub[hidden] { display: none; }
+  .merk-hub-backdrop { position:absolute; inset:0; background: radial-gradient(circle at 70% 20%, rgba(255,83,21,.16), transparent 35%), rgba(2,6,9,.78); backdrop-filter: blur(10px); }
+  .merk-hub-panel { position:relative; width:min(680px, calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:clamp(18px,4vw,34px); background:linear-gradient(145deg, rgba(7,16,22,.97), rgba(3,8,12,.94)); border:1px solid rgba(255,96,34,.32); box-shadow:0 24px 80px #000, inset 0 1px rgba(255,255,255,.06); }
+  .merk-hub-topline,.merk-brand-row,.merk-loadout-row,.merk-actions,.merk-friend { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .merk-kicker,.merk-label { color:#ff6a2a; font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; }
+  .merk-icon-btn { border:0; background:none; color:#fff; font-size:28px; line-height:1; cursor:pointer; }
+  .merk-brand-row { margin:18px 0 22px; align-items:flex-end; }
+  .merk-brand-row h2 { margin:0; font-size:clamp(28px,7vw,46px); letter-spacing:.08em; line-height:.9; font-weight:900; text-shadow:0 4px 20px #000; }
+  .merk-brand-row h2 span { color:#ff6422; }
+  .merk-brand-row p { margin:9px 0 0; color:#8ba0ab; font-size:10px; letter-spacing:.16em; }
+  .merk-rank-badge { display:grid; place-items:center; width:54px; height:54px; border:2px solid #ff6422; color:#ff6422; font-size:20px; font-weight:900; transform:skew(-8deg); }
+  .merk-tabs { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid rgba(165,191,205,.18); margin:0 -8px 18px; }
+  .merk-tab { border:0; border-bottom:2px solid transparent; background:none; color:#79909c; padding:12px 4px; font:800 10px var(--fe-ui); letter-spacing:.14em; cursor:pointer; }
+  .merk-tab.is-active { color:#fff; border-color:#ff6422; }
+  .merk-view { display:none; animation:merk-in .18s ease-out; }
+  .merk-view.is-active { display:block; }
+  @keyframes merk-in { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:none } }
+  .merk-mode-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }
+  .merk-mode,.merk-primary,.merk-secondary { border:1px solid rgba(165,191,205,.2); background:rgba(13,29,38,.76); color:#dbe7ed; min-height:52px; padding:11px 12px; text-align:left; font-family:var(--fe-ui); cursor:pointer; transition:.16s ease; }
+  .merk-mode b,.merk-mode small { display:block; }.merk-mode b { font-size:12px; letter-spacing:.08em; }.merk-mode small { color:#78909b; font-size:9px; margin-top:5px; letter-spacing:.08em; }
+  .merk-mode.is-active,.merk-mode:hover { border-color:#ff6422; background:rgba(255,82,28,.14); }.merk-mode.is-active b { color:#ff8a55; }
+  .merk-zombies { background:linear-gradient(135deg, rgba(112,30,18,.6), rgba(19,27,30,.8)); }
+  .merk-loadout-row { margin:16px 0; padding:13px 0; border-top:1px solid rgba(165,191,205,.14); border-bottom:1px solid rgba(165,191,205,.14); }
+  .merk-loadout-row strong { display:block; margin-top:6px; font-size:12px; letter-spacing:.08em; }
+  .merk-primary { flex:1; background:#ff6422; border-color:#ff6422; color:#130b08; font-weight:900; text-align:center; letter-spacing:.13em; }.merk-primary span { font-size:22px; vertical-align:-2px; }
+  .merk-secondary { color:#b7c7ce; font-size:10px; font-weight:800; letter-spacing:.1em; text-align:center; }.merk-secondary:hover { border-color:#ff6422; color:#fff; }.merk-full { width:100%; margin-top:16px; }
+  .merk-actions { align-items:stretch; }.merk-actions .merk-secondary { min-width:140px; }
+  .merk-stat-card,.merk-social-card { background:rgba(12,26,34,.7); padding:18px; border:1px solid rgba(165,191,205,.14); }.merk-stat-card strong { display:block; margin:9px 0; font-size:24px; letter-spacing:.06em; }.merk-stat-card small { color:#8da1ab; }.merk-progress { height:8px; background:#15232a; margin:16px 0 8px; }.merk-progress i { display:block; width:0%; height:100%; background:linear-gradient(90deg,#ff6422,#ffb347); }
+  .merk-leader-row { display:grid; grid-template-columns:55px 1fr auto; gap:10px; padding:14px 10px; border-bottom:1px solid rgba(165,191,205,.12); font-size:11px; }.merk-leader-row span { color:#ff6422; }.merk-leader-row strong { color:#8da1ab; font-size:10px; }
+  .merk-friend { padding:15px 2px; border-bottom:1px solid rgba(165,191,205,.12); }.merk-friend i { width:8px; height:8px; border-radius:50%; background:#586873; }.merk-friend i.is-online { background:#54d69a; box-shadow:0 0 10px #54d69a; }.merk-friend b { flex:1; font-size:12px; }.merk-friend small { color:#7b919c; font-size:9px; }.merk-friend button { background:none; border:0; color:#ff7b3e; font:800 9px var(--fe-ui); letter-spacing:.1em; }
+  .merk-setting { display:grid; gap:15px; padding:16px; background:rgba(12,26,34,.7); border:1px solid rgba(165,191,205,.14); }.merk-setting label { display:grid; grid-template-columns:1fr auto; align-items:center; gap:14px; color:#b9c9d0; font-size:10px; letter-spacing:.12em; }.merk-setting select { background:#09151b; color:#fff; border:1px solid #304550; padding:9px; font:10px var(--fe-ui); }.merk-setting input[type=range] { accent-color:#ff6422; width:160px; }.merk-setting output { color:#ff8a55; }.merk-check { display:flex !important; grid-template-columns:none !important; justify-content:flex-start; }.merk-check input { accent-color:#ff6422; }
+  @media (max-width:560px) { .merk-hub-panel { padding:17px; }.merk-mode-grid { gap:7px; }.merk-mode { min-height:58px; padding:9px; }.merk-actions { flex-direction:column; }.merk-actions .merk-secondary { min-height:45px; }.merk-loadout-row { align-items:flex-start; flex-direction:column; }.merk-loadout-row .merk-secondary { width:100%; }.merk-setting input[type=range] { width:125px; } }
+
 </style>
 <script type="importmap">
 { "imports": {
@@ -575,11 +613,11 @@
   <div class="fe-layer fe-vignette"></div>
   <div class="fe-content">
     <header>
-      <h1 class="fe-wordmark">CLAUDE OF DUTY<span class="fe-subtitle">VIBE SLOPS <b>II</b></span></h1>
-      <p class="fe-sub">Browser reconstruction</p>
+      <h1 class="fe-wordmark">MERK OF DUTY<span class="fe-subtitle">BLACK OPS // MOBILE</span></h1>
+      <p class="fe-sub">TACTICAL MOBILE COMBAT // kremcheats.com</p>
     </header>
     <div class="fe-welcome">
-      <button type="button" class="fe-btn" id="fe-load-game">Tap or click to load</button>
+      <button type="button" class="fe-btn" id="fe-load-game">ENTER THE COMBAT ZONE</button>
     </div>
     <div class="fe-load">
       <div class="fe-track"><div class="fe-bar" id="fe-bar"></div></div>
@@ -588,8 +626,8 @@
     <div class="fe-start">
       <div class="fe-maps" id="fe-maps"></div>
       <div class="fe-start-foot">
-        <p class="fe-prompt">Click to play</p>
-        <button type="button" class="fe-btn" data-action="class">Create a class</button>
+        <p class="fe-prompt">TAP TO DEPLOY</p>
+        <button type="button" class="fe-btn" data-action="class">ARMORY / CREATE A CLASS</button>
         <p class="fe-count" id="fe-count" hidden></p>
       </div>
     </div>
@@ -629,6 +667,25 @@
       <button type="button" class="fe-btn" id="touch-fullscreen" hidden>Full screen</button>
     </div>
     <p class="fe-message" id="fe-message"></p>
+  </div>
+</div>
+
+<div id="merk-hub" class="merk-hub" hidden aria-label="Merk Of Duty mobile hub">
+  <div class="merk-hub-backdrop"></div>
+  <div class="merk-hub-panel">
+    <div class="merk-hub-topline"><span class="merk-kicker">MOBILE OPERATIONS</span><button id="merk-hub-close" class="merk-icon-btn" aria-label="Close menu">×</button></div>
+    <div class="merk-brand-row"><div><h2>MERK <span>OF DUTY</span></h2><p id="merk-player-line">GUEST OPERATIVE · LEVEL 01</p></div><div class="merk-rank-badge" id="merk-rank-badge">01</div></div>
+    <div class="merk-tabs" role="tablist">
+      <button class="merk-tab is-active" data-merk-tab="play">PLAY</button><button class="merk-tab" data-merk-tab="rank">RANKED</button><button class="merk-tab" data-merk-tab="social">SOCIAL</button><button class="merk-tab" data-merk-tab="settings">SETTINGS</button>
+    </div>
+    <section class="merk-view is-active" data-merk-view="play">
+      <div class="merk-mode-grid"><button class="merk-mode is-active" data-mode="normal"><b>NORMAL</b><small>ALL MODES</small></button><button class="merk-mode" data-mode="ranked"><b>RANKED</b><small>TDM · S&D · HARDPOINT</small></button><button class="merk-mode" data-mode="hardcore"><b>HARDCORE</b><small>NO HUD · ALL MODES</small></button><button class="merk-mode merk-zombies" data-mode="zombies"><b>ZOMBIES</b><small>INFINITE ROUNDS · CO-OP</small></button></div>
+      <div class="merk-loadout-row"><div><span class="merk-label">MATCH SETTINGS</span><strong id="merk-match-summary">TEAM DEATHMATCH · 10 MIN</strong></div><button class="merk-secondary" id="merk-custom">CUSTOM GAME</button></div>
+      <div class="merk-actions"><button class="merk-primary" id="merk-deploy">DEPLOY NOW <span>›</span></button><button class="merk-secondary" id="merk-quick-settings">QUICK SETTINGS</button></div>
+    </section>
+    <section class="merk-view" data-merk-view="rank"><div class="merk-stat-card"><span class="merk-label">CURRENT RANK</span><strong id="merk-rank-name">RECRUIT I</strong><div class="merk-progress"><i id="merk-rank-progress"></i></div><small id="merk-rank-xp">0 / 1,000 XP</small></div><div class="merk-leader-row"><span>#001</span><b>MERK OPERATIVE</b><strong id="merk-leader-score">0 WINS</strong></div><div class="merk-leader-row"><span>#024</span><b>RAVEN-07</b><strong>3,420 SR</strong></div><div class="merk-leader-row"><span>#107</span><b>GHOSTLINE</b><strong>2,980 SR</strong></div></section>
+    <section class="merk-view" data-merk-view="social"><div class="merk-social-card"><span class="merk-label">FRIENDS</span><div class="merk-friend"><i class="is-online"></i><b>RAVEN-07</b><small>IN LOBBY</small><button>INVITE</button></div><div class="merk-friend"><i></i><b>GHOSTLINE</b><small>OFFLINE</small><button>ADD</button></div><div class="merk-friend"><i class="is-online"></i><b>NEON-FOX</b><small>IN MATCH</small><button>WATCH</button></div></div><button class="merk-secondary merk-full" id="merk-signin">SIGN IN / CREATE ACCOUNT</button></section>
+    <section class="merk-view" data-merk-view="settings"><div class="merk-setting"><label>QUALITY <select id="merk-quality"><option value="hd">HD / HIGH</option><option value="ultra">ULTRA / 4K READY</option><option value="balanced">BALANCED</option><option value="battery">BATTERY SAVER</option></select></label><label>FOV <input id="merk-fov" type="range" min="60" max="120" value="90"><output id="merk-fov-out">90°</output></label><label>AIM MODE <select id="merk-aim"><option>TAP TO AIM</option><option>HOLD TO AIM</option><option>HYBRID</option></select></label><label class="merk-check"><input id="merk-split" type="checkbox" checked> SPLIT CROUCH / SLIDE / PRONE</label><label class="merk-check"><input id="merk-hud" type="checkbox" checked> CUSTOMIZABLE HUD</label></div></section>
   </div>
 </div>
 <div id="hud">loading…</div>
@@ -3197,5 +3254,6 @@ addEventListener('resize', () => {
   resizeGraphicsBuffer();
 });
 </script>
+<script type="module" src="./merk-shell.js"></script>
 </body>
 </html>
