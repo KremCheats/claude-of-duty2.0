@@ -3037,6 +3037,7 @@ function tick() {
   });
   if (player && simulationActive) {
     player.update(dt, controlsActive ? { ...movement, sprint: sprintState.sprinting } : {});
+    if (player && !viewmodel.scoped && camera.isPerspectiveCamera) { const targetFov = SCOPE.hipFov + (player.state.cameraFovOffset || 0); if (Math.abs(camera.fov-targetFov)>0.01) { camera.fov += (targetFov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix(); } }
   }
   if (simulationActive && enemySimulationActive) navigation?.update(1 / 60, dt, 5);
   enemies?.update(dt, { active: simulationActive && enemySimulationActive });

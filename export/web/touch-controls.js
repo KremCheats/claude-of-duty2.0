@@ -80,19 +80,22 @@ export class TouchInput {
     const input = {
       forward: this.forward, strafe: this.strafe,
       sprint: this.sprint && !this.aim && !fire && !this.crouch,
-      crouch: this.crouch || this.slide || this.prone, slide: this.slide, prone: this.prone, aim: this.aim, fire, jump: this.jumpQueued, breath: this.breath,
+      crouch: this.crouch || this.slide || this.prone, aim: this.aim, fire, jump: this.jumpQueued, breath: this.breath,
     };
+    if (this.slide) input.slide = true;
+    if (this.prone) input.prone = true;
     this.fireQueued = this.jumpQueued = false;
     return input;
   }
 
   getState() {
-    return {
-      pointers: this.pointers.size, forward: this.forward, strafe: this.strafe,
+    const state = { pointers: this.pointers.size, forward: this.forward, strafe: this.strafe,
       sprint: this.sprint && !this.aim && !this.fire && !this.crouch,
-      aim: this.aim, crouch: this.crouch, slide: this.slide, prone: this.prone, fire: this.fire, breath: this.breath,
-      frag: [...this.pointers.values()].some(p => p.kind === 'frag'),
-    };
+      aim: this.aim, crouch: this.crouch, fire: this.fire, breath: this.breath,
+      frag: [...this.pointers.values()].some(p => p.kind === 'frag') };
+    if (this.slide) state.slide = true;
+    if (this.prone) state.prone = true;
+    return state;
   }
 }
 
@@ -114,6 +117,7 @@ export class TouchControls {
     this.knob = root.querySelector('.touch-knob');
     this.moveZone = root.querySelector('[data-touch="move"]');
     this.captures = new Map(); this.dragging = new Map();
+    for (const el of root.querySelectorAll('[data-touch]')) { try { const saved=JSON.parse(localStorage.getItem('merk.hud.'+el.dataset.touch)||'null'); if(saved){el.style.left=saved.left;el.style.top=saved.top;el.style.right='auto';el.style.bottom='auto'} } catch {} }
     const activate = (event) => {
       if (event.pointerType !== 'touch' || this.mode) return;
       this.mode = true;

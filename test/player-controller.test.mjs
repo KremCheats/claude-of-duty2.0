@@ -192,3 +192,18 @@ test('without ladder volumes the prop is just a wall', () => {
   assert.equal(player.isOnLadder, false);
   assert.ok(Math.abs(player.feetPosition.y) < 1, `climbed without a volume: y=${player.feetPosition.y}`);
 });
+
+
+test('movement states support sprint slide cancel and bounded momentum', () => {
+  const world=new THREE.Group(); const floor=new THREE.Mesh(new THREE.BoxGeometry(2000,1,2000)); floor.position.y=-.5; world.add(floor); world.updateWorldMatrix(true,true);
+  const player=new PlayerController(new THREE.PerspectiveCamera(),world,{spawn:new THREE.Vector3(0,.2,0),movement:{slideSpeed:300}});
+  run(player, .5, {forward:true,sprint:true}); assert.ok(['sprint','tactical-sprint'].includes(player.state.movementState), player.state.movementState);
+  player.update(1/120,{forward:true,sprint:true,crouch:true}); assert.equal(player.state.movementState,'slide'); assert.ok(Math.hypot(player.velocity.x,player.velocity.z)<360);
+  run(player,.2,{forward:true,sprint:true}); assert.ok(player.state.movementState==='slide'||player.state.movementState==='slide-cancel');
+  run(player,1,{forward:true,sprint:true}); assert.ok(Math.hypot(player.velocity.x,player.velocity.z)<380);
+});
+
+test('jump buffer produces a clean airborne state and landing', () => {
+  const world=new THREE.Group(); const floor=new THREE.Mesh(new THREE.BoxGeometry(2000,1,2000)); floor.position.y=-.5; world.add(floor); world.updateWorldMatrix(true,true);
+  const player=new PlayerController(new THREE.PerspectiveCamera(),world,{spawn:new THREE.Vector3(0,.2,0)}); run(player,.2,{}); player.update(1/120,{jumpPressed:true}); assert.ok(['airborne','falling'].includes(player.state.movementState)); run(player,2,{}); assert.equal(player.isGrounded,true); assert.ok(['idle','landing'].includes(player.state.movementState));
+});

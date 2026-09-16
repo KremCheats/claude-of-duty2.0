@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import { Octree } from 'three/addons/math/Octree.js';
+import { MOVEMENT_SETTINGS } from './movement-settings.js';
 
 // A small, physics-only first-person controller.  The Octree is deliberately
 // separate from the render scene: pass it the collision-only Object3D (or the
@@ -183,6 +184,7 @@ export class PlayerController {
     this.fixedTimeStep = clamp(numberOr(options.fixedTimeStep, 1 / 120), 1 / 300, 1 / 30);
     this.maxSubSteps = Math.max(1, Math.floor(numberOr(options.maxSubSteps, 8)));
     this.maxDelta = Math.max(this.fixedTimeStep, numberOr(options.maxDelta, 0.1));
+    this.movement = { ...MOVEMENT_SETTINGS, ...(options.movement || {}) }; this.stateName = 'idle'; this.slideTimer = 0; this.slideCooldownTimer = 0; this.slideStarted = false; this.slideDirection = new THREE.Vector3(); this.cameraOffsetY = 0; this.cameraFovOffset = 0; this.lastGrounded = false; this.landingTimer = 0;
     this.maxCollisionIterations = Math.max(
       1,
       Math.floor(numberOr(options.maxCollisionIterations, 5)),
@@ -219,7 +221,10 @@ export class PlayerController {
       forward: 0,
       strafe: 0,
       sprint: false,
+      tacticalSprint: false,
       crouch: false,
+      slide: false,
+      prone: false,
       jump: false,
     };
     this.onFloor = false;
@@ -350,6 +355,9 @@ export class PlayerController {
     this.input.forward = forward;
     this.input.strafe = strafe;
     this.input.sprint = readButton(input, 'sprint', 'run', 'ShiftLeft', 'ShiftRight', 'shift');
+    this.input.tacticalSprint = readButton(input, 'tacticalSprint');
+    this.input.slide = readButton(input, 'slide', 'KeyC', 'c');
+    this.input.prone = readButton(input, 'prone', 'KeyV', 'v');
     this.input.crouch = readButton(input, 'crouch', 'duck', 'ControlLeft', 'ControlRight', 'KeyC', 'c');
     this.input.jump = jump;
     return this;
@@ -414,6 +422,7 @@ export class PlayerController {
       velocity: this.velocity,
       grounded: this.onFloor,
       crouched: this.crouched,
+      movementState: this.stateName, slideTimer: this.slideTimer, cameraFovOffset: this.cameraFovOffset,
       onLadder: this.onLadder,
       worldReady: this.worldReady,
     };
@@ -461,6 +470,7 @@ export class PlayerController {
     else this._coyoteTimer = Math.max(0, this._coyoteTimer - dt);
     this._jumpBufferTimer = Math.max(0, this._jumpBufferTimer - dt);
 
+    this._updateMovementState(dt);
     this._updateCrouchState();
     this._updateLadderState(dt);
 
@@ -473,6 +483,7 @@ export class PlayerController {
 
     if (!this.onLadder && this._jumpBufferTimer > 0 && (this.onFloor || this._coyoteTimer > 0)) {
       this.velocity.y = this.jumpSpeed;
+      this.stateName = 'airborne';
       this.onFloor = false;
       this.grounded = false;
       this._jumpBufferTimer = 0;
@@ -531,6 +542,30 @@ export class PlayerController {
     }
   }
 
+  _updateMovementState(dt) {
+    this.slideCooldownTimer = Math.max(0, this.slideCooldownTimer - dt);
+    const speed = Math.hypot(this.velocity.x, this.velocity.z);
+    const moving = Math.hypot(this.input.forward, this.input.strafe) > 0.08;
+    const wantsSlide = this.input.slide || (this.input.crouch && this.input.sprint);
+    if (this.onFloor && wantsSlide && this.input.sprint && moving && speed >= this.movement.sprintSpeed * 0.72 && this.slideCooldownTimer <= 0 && !this.onLadder && this.stateName !== 'slide') {
+      this.stateName = 'slide'; this.slideTimer = this.movement.slideDuration; this.slideStarted = true; this.slideCooldownTimer = this.movement.slideCooldown;
+      this._wishDirection(this.slideDirection); if (this.slideDirection.lengthSq() < 1e-4) this.slideDirection.set(this.velocity.x,0,this.velocity.z).normalize();
+      const momentum = Math.max(speed, this.movement.slideSpeed * 0.88); this.velocity.x = this.slideDirection.x * Math.min(momentum, this.movement.slideSpeed); this.velocity.z = this.slideDirection.z * Math.min(momentum, this.movement.slideSpeed); this._setCapsuleHeight(this.crouchHeight); this.crouched = true;
+    }
+    if (this.stateName === 'slide') {
+      this.slideTimer -= dt; const steer = this._wishDirection(_wish); if (steer.lengthSq() > 1e-4) { this.slideDirection.lerp(steer, Math.min(1, this.movement.slideSteer * dt * 10)).normalize(); }
+      const planar = Math.hypot(this.velocity.x,this.velocity.z); const next = Math.max(this.movement.crouchSpeed, planar * Math.exp(-this.movement.slideFriction * dt)); this.velocity.x=this.slideDirection.x*next; this.velocity.z=this.slideDirection.z*next;
+      if (!this.onFloor || this.slideTimer <= 0 || (!this.input.crouch && !this.input.slide && planar < this.movement.crouchSpeed * 1.2)) { this.stateName='slide-cancel'; this.slideCooldownTimer=this.movement.slideCooldown; }
+    } else if (this.stateName === 'slide-cancel') {
+      this.stateName = this.input.sprint && moving ? 'sprint' : (this.onFloor ? 'crouch' : 'airborne');
+    } else if (!this.onFloor) this.stateName = this.velocity.y > 0 ? 'airborne' : 'falling';
+    else if (this.input.prone) this.stateName='prone';
+    else if (this.input.crouch) this.stateName='crouch';
+    else if (this.input.sprint && moving) this.stateName=this.input.tacticalSprint?'tactical-sprint':'sprint';
+    else if (moving) this.stateName='walk'; else this.stateName='idle';
+    if (this.onFloor && !this.lastGrounded && this.velocity.y <= 0) { this.stateName='landing'; this.landingTimer=.12; }
+    this.lastGrounded=this.onFloor; this.landingTimer=Math.max(0,this.landingTimer-dt);
+  }
   _updateHorizontalVelocity(dt) {
     this._wishDirection(_wish);
 
@@ -543,6 +578,7 @@ export class PlayerController {
     const maxChange = acceleration * dt;
     this.velocity.x += clamp(_wish.x - this.velocity.x, -maxChange, maxChange);
     this.velocity.z += clamp(_wish.z - this.velocity.z, -maxChange, maxChange);
+    const maxPlanar = this.stateName === 'slide' ? this.movement.slideSpeed : this.movement.tacticalSprintSpeed; const planar = Math.hypot(this.velocity.x,this.velocity.z); if (planar > maxPlanar) { const scale=maxPlanar/planar; this.velocity.x*=scale; this.velocity.z*=scale; }
   }
 
   _updateCrouchState() {
@@ -809,7 +845,7 @@ export class PlayerController {
 
   _syncCamera() {
     const feetY = this.collider.start.y - this.radius;
-    this.camera.position.set(this.collider.start.x, feetY + this._eyeHeight, this.collider.start.z);
+    const targetOffset = this.stateName === 'slide' ? -this.movement.slideCameraDrop : (this.landingTimer > 0 ? -this.movement.landingDip * (this.landingTimer / .12) : 0); this.cameraOffsetY += (targetOffset - this.cameraOffsetY) * Math.min(1, this.movement.cameraSmoothing * this.fixedTimeStep); this.cameraFovOffset += (((this.stateName === 'slide' ? this.movement.slideFovBoost : (this.stateName === 'sprint' || this.stateName === 'tactical-sprint' ? this.movement.sprintFovBoost : 0)) - this.cameraFovOffset) * Math.min(1, this.movement.cameraSmoothing * this.fixedTimeStep)); this.camera.position.set(this.collider.start.x, feetY + this._eyeHeight + this.cameraOffsetY, this.collider.start.z); if (this.camera.isPerspectiveCamera) this.camera.userData.movementFovOffset=this.cameraFovOffset;
   }
 }
 
