@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="stylesheet" href="touch-controls.css">
 <link rel="icon" href="social/icon-512.png" type="image/png">
 <link rel="apple-touch-icon" href="social/icon-512.png">
@@ -614,7 +614,18 @@
   .merk-ops-drawer [data-merk-view].is-active{min-height:0;overflow-y:auto;overflow-x:hidden;padding:2px 2px 22px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .merk-setting{gap:10px;padding:12px}.merk-setting label{min-height:38px;grid-template-columns:minmax(0,1fr) minmax(120px,42%);font-size:9px;letter-spacing:.08em}.merk-setting input[type=range]{width:100%;min-width:0}.merk-setting select{max-width:100%;font-size:9px;padding:8px}.merk-loadout-editor{padding-bottom:12px}.merk-loadout-editor label{min-height:40px;grid-template-columns:minmax(0,1fr) minmax(125px,48%);font-size:9px}.merk-loadout-editor select{max-width:100%;font-size:9px}.merk-operator-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.merk-operator{min-height:108px;padding:10px}.merk-ops-drawer .merk-primary,.merk-ops-drawer .merk-secondary{min-height:44px;touch-action:manipulation}
   @media(max-width:560px){.merk-ops-drawer{left:6px;right:6px;padding-left:10px;padding-right:10px}.merk-drawer-head{margin-left:0;margin-right:0}.merk-setting label{grid-template-columns:minmax(0,1fr) minmax(116px,46%)}.merk-setting output{font-size:9px}.merk-ops-drawer [data-merk-view].is-active{padding-bottom:34px}}
+
+  /* Gameplay owns the gesture surface: prevent iOS Safari pinch/page zoom while aiming, firing, and moving. */
+  html,body,#touch-controls,#touch-controls *{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #touch-controls{overscroll-behavior:none;contain:layout paint}
 </style>
+
+<script>
+// iPhone Safari must never turn a three-finger gameplay interaction into page zoom.
+for (const type of ['gesturestart','gesturechange','gestureend']) document.addEventListener(type,e=>e.preventDefault(),{passive:false});
+document.addEventListener('touchmove',e=>{if(e.touches.length>1 || e.target.closest('#touch-controls')) e.preventDefault()},{passive:false});
+document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:false});
+</script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",

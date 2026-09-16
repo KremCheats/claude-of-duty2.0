@@ -120,6 +120,7 @@ export class TouchControls {
     document.body.classList.toggle('touch-mode', this.mode);
     document.addEventListener('pointerdown', activate, { capture: true, passive: true });
     root.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'touch' && event.isPrimary === false && event.target.closest('#touch-controls') === null) return;
       const target = event.target.closest('[data-touch]');
       if (!this.enabled || event.pointerType !== 'touch' || !target) return;
       event.preventDefault();
