@@ -1,0 +1,1 @@
+ALTER TABLE ranked_players ADD COLUMN top_gun TEXT NOT NULL DEFAULT 'M27';
