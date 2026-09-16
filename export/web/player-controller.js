@@ -483,6 +483,7 @@ export class PlayerController {
 
     if (!this.onLadder && this._jumpBufferTimer > 0 && (this.onFloor || this._coyoteTimer > 0)) {
       this.velocity.y = this.jumpSpeed;
+      if (this.stateName === 'slide') { this.velocity.x *= this.movement.slideHopBoost; this.velocity.z *= this.movement.slideHopBoost; }
       this.stateName = 'airborne';
       this.onFloor = false;
       this.grounded = false;
@@ -546,7 +547,7 @@ export class PlayerController {
     this.slideCooldownTimer = Math.max(0, this.slideCooldownTimer - dt);
     const speed = Math.hypot(this.velocity.x, this.velocity.z);
     const moving = Math.hypot(this.input.forward, this.input.strafe) > 0.08;
-    const wantsSlide = this.input.slide || (this.input.crouch && this.input.sprint);
+    const wantsSlide = this.input.slide || (this.input.crouch && (this.input.sprint || speed >= this.movement.walkSpeed * 1.15));
     if (this.onFloor && wantsSlide && this.input.sprint && moving && speed >= this.movement.sprintSpeed * 0.72 && this.slideCooldownTimer <= 0 && !this.onLadder && this.stateName !== 'slide') {
       this.stateName = 'slide'; this.slideTimer = this.movement.slideDuration; this.slideStarted = true; this.slideCooldownTimer = this.movement.slideCooldown;
       this._wishDirection(this.slideDirection); if (this.slideDirection.lengthSq() < 1e-4) this.slideDirection.set(this.velocity.x,0,this.velocity.z).normalize();
@@ -578,7 +579,7 @@ export class PlayerController {
     const maxChange = acceleration * dt;
     this.velocity.x += clamp(_wish.x - this.velocity.x, -maxChange, maxChange);
     this.velocity.z += clamp(_wish.z - this.velocity.z, -maxChange, maxChange);
-    const maxPlanar = this.stateName === 'slide' ? this.movement.slideSpeed : this.movement.tacticalSprintSpeed; const planar = Math.hypot(this.velocity.x,this.velocity.z); if (planar > maxPlanar) { const scale=maxPlanar/planar; this.velocity.x*=scale; this.velocity.z*=scale; }
+    const maxPlanar = this.stateName === 'slide' ? this.movement.slideSpeed : (!this.onFloor ? this.movement.maxAirSpeed : this.movement.tacticalSprintSpeed); const planar = Math.hypot(this.velocity.x,this.velocity.z); if (planar > maxPlanar) { const scale=maxPlanar/planar; this.velocity.x*=scale; this.velocity.z*=scale; }
   }
 
   _updateCrouchState() {
