@@ -14,7 +14,7 @@ export class TouchInput {
     for (const id of [...this.pointers.keys()]) this.end(id, true);
     this.pointers.clear();
     this.forward = this.strafe = this.stickX = this.stickY = 0;
-    this.sprint = this.aim = this.crouch = this.fire = this.breath = false;
+    this.sprint = this.aim = this.crouch = this.slide = this.prone = this.fire = this.breath = false;
     this.jumpQueued = this.fireQueued = false;
   }
 
@@ -26,6 +26,8 @@ export class TouchInput {
     if (kind === 'jump') this.jumpQueued = true;
     if (kind === 'aim') this.aim = !this.aim;
     if (kind === 'crouch') this.crouch = !this.crouch;
+    if (kind === 'slide') this.slide = true;
+    if (kind === 'prone') this.prone = !this.prone;
     if (['reload', 'switch', 'melee', 'smoke'].includes(kind)) this.onAction(kind);
     if (kind === 'frag') this.onAction(kind, 'start');
     return true;
@@ -65,6 +67,7 @@ export class TouchInput {
       this.forward = this.strafe = this.stickX = this.stickY = 0;
       this.sprint = false;
     }
+    if (p.kind === 'slide') this.slide = false;
     if (p.kind === 'fire') {
       this.fire = false;
       if (cancelled) this.fireQueued = false;
@@ -77,7 +80,7 @@ export class TouchInput {
     const input = {
       forward: this.forward, strafe: this.strafe,
       sprint: this.sprint && !this.aim && !fire && !this.crouch,
-      crouch: this.crouch, aim: this.aim, fire, jump: this.jumpQueued, breath: this.breath,
+      crouch: this.crouch || this.slide || this.prone, slide: this.slide, prone: this.prone, aim: this.aim, fire, jump: this.jumpQueued, breath: this.breath,
     };
     this.fireQueued = this.jumpQueued = false;
     return input;
@@ -87,7 +90,7 @@ export class TouchInput {
     return {
       pointers: this.pointers.size, forward: this.forward, strafe: this.strafe,
       sprint: this.sprint && !this.aim && !this.fire && !this.crouch,
-      aim: this.aim, crouch: this.crouch, fire: this.fire, breath: this.breath,
+      aim: this.aim, crouch: this.crouch, slide: this.slide, prone: this.prone, fire: this.fire, breath: this.breath,
       frag: [...this.pointers.values()].some(p => p.kind === 'frag'),
     };
   }
@@ -110,7 +113,7 @@ export class TouchControls {
     this.stick = root.querySelector('.touch-stick');
     this.knob = root.querySelector('.touch-knob');
     this.moveZone = root.querySelector('[data-touch="move"]');
-    this.captures = new Map();
+    this.captures = new Map(); this.dragging = new Map();
     const activate = (event) => {
       if (event.pointerType !== 'touch' || this.mode) return;
       this.mode = true;
@@ -123,6 +126,7 @@ export class TouchControls {
       if (event.pointerType === 'touch' && event.isPrimary === false && event.target.closest('#touch-controls') === null) return;
       const target = event.target.closest('[data-touch]');
       if (!this.enabled || event.pointerType !== 'touch' || !target) return;
+      if (document.body.classList.contains('hud-edit')) { event.preventDefault(); this.dragging.set(event.pointerId,target); target.setPointerCapture(event.pointerId); return; }
       event.preventDefault();
       const kind = target.dataset.touch;
       const radius = this.stick.offsetWidth * 0.36;
@@ -138,6 +142,7 @@ export class TouchControls {
       this.render();
     });
     root.addEventListener('pointermove', (event) => {
+      if (this.dragging.has(event.pointerId)) { event.preventDefault(); const el=this.dragging.get(event.pointerId); el.style.left=`${event.clientX/window.innerWidth*100}%`; el.style.top=`${event.clientY/window.innerHeight*100}%`; el.style.right='auto'; el.style.bottom='auto'; try{localStorage.setItem('merk.hud.'+el.dataset.touch,JSON.stringify({left:el.style.left,top:el.style.top}))}catch{} return; }
       if (!this.input.pointers.has(event.pointerId)) return;
       event.preventDefault();
       this.input.move(event.pointerId, event.clientX, event.clientY);
@@ -145,7 +150,7 @@ export class TouchControls {
     });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
       root.addEventListener(type, (event) => {
-        this.input.end(event.pointerId, type !== 'pointerup');
+        this.dragging.delete(event.pointerId); this.input.end(event.pointerId, type !== 'pointerup');
         this.captures.delete(event.pointerId);
         this.render();
       });
@@ -196,7 +201,7 @@ export class TouchControls {
     this.stick.querySelector('span').textContent = state.sprint ? 'SPRINT' : 'MOVE';
     for (const button of this.root.querySelectorAll('button[data-touch]')) {
       const kind = button.dataset.touch;
-      const pressed = kind === 'aim' || kind === 'crouch' ? state[kind]
+      const pressed = ['aim','crouch','slide','prone'].includes(kind) ? state[kind]
         : [...this.input.pointers.values()].some(p => p.kind === kind);
       button.classList.toggle('pressed', pressed);
       if (kind === 'aim' || kind === 'crouch') button.setAttribute('aria-pressed', String(pressed));
