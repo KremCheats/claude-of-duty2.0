@@ -1,5 +1,5 @@
 export const RANK_TIERS = Object.freeze([
-  ...['ROOKIE','VETERAN','ELITE','PRO'].flatMap(t => [1,2,3,4,5].map(d => ({name:`${t} ${d}`, tier:t, division:d, floor:0}))),
+  ...['ROOKIE','VETERAN','ELITE','PRO'].flatMap(t => [1,2,3,4,5].map(d => ({name:`${t} ${['I','II','III','IV','V'][d-1]}`, tier:t, division:d, floor:0}))),
   {name:'MASTER',tier:'MASTER',division:0,floor:2000},{name:'GRANDMASTER',tier:'GRANDMASTER',division:0,floor:2600},{name:'LEGENDARY',tier:'LEGENDARY',division:0,floor:3200}
 ]);
 export const SEASON = Object.freeze({number:1,name:'BLACKOUT PROTOCOL',start:'2026-09-01',end:'2026-10-31',resetRp:0});
