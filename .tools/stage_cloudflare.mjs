@@ -60,6 +60,9 @@ for (const map of maps.filter((candidate) => candidate.baked)) {
 await mkdir(path.dirname(destination), { recursive: true });
 await rm(destination, { recursive: true, force: true });
 await cp(source, destination, { recursive: true, filter: include });
+const functionsSource = path.join(root, 'functions');
+const functionsDestination = path.join(destination, 'functions');
+await cp(functionsSource, functionsDestination, { recursive: true });
 for (const result of await fitCloudflareAssets(destination)) {
   console.log(`Split ${result.file}: ${result.files.map(file => `${file.name} (${(file.bytes / 1024 / 1024).toFixed(2)} MiB)`).join(', ')}`);
 }
