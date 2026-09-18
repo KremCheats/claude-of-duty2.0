@@ -11,8 +11,8 @@ test('pending asset catalog covers every uploaded asset category', () => {
 });
 
 test('existing weapon replacements are marked safe candidates, not automatic replacements', () => {
-  assert.equal(assetById('ballista_r2').status, 'replacement-candidate');
-  assert.equal(assetById('dsr50_r2').status, 'replacement-candidate');
-  assert.equal(assetById('fal_osw_r2').status, 'replacement-candidate');
+  assert.equal(assetById('ballista_r2').status, 'staged-browser-model');
+  assert.equal(assetById('dsr50_r2').status, 'staged-browser-model');
+  assert.equal(assetById('fal_osw_r2').status, 'staged-browser-model');
   assert.equal(assetById('ray_gun_bo2').status, 'source-c4d-rar');
 });

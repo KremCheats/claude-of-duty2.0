@@ -25,7 +25,7 @@ export function assetStatus(id) {
 }
 
 export function isReadyAsset(id) {
-  return assetStatus(id) === 'browser-ready';
+  return ['browser-ready', 'staged-browser-model'].includes(assetStatus(id));
 }
 
 export function sourceForAsset(id) {
