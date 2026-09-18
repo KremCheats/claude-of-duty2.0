@@ -833,6 +833,7 @@ import { TouchControls } from './touch-controls.js';
 import { loadGltf as loadGltfAsset } from './load-gltf.js';
 import { GraphicsSettings, filterTextures } from './graphics-settings.js';
 import { GraphicsRenderer } from './graphics-renderer.js';
+import { runtimeAssetUrl } from './asset-runtime.js';
 import { PlayCounter } from './play-counter.js';
 import { loadCollisionWorld } from './collision-world.js';
 import { optimizeStaticScene } from './scene-optimizer.js';
@@ -1677,7 +1678,7 @@ function loadWeaponSlot(slot) {
     try {
       await slotViewmodel.load(
         VIEWMODEL_HANDS,
-        definition.viewmodelUrl,
+        runtimeAssetUrl({ ballista: 'ballista_r2', dsr50: 'dsr50_r2', sa58: 'fal_osw_r2' }[definition.id]) ?? definition.viewmodelUrl,
         definition.magazineUrl,
         (label, event) => progress(label, event),
         {
