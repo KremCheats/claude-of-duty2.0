@@ -73,6 +73,13 @@ export const MAPS = Object.freeze({
     // hidden here rather than shown wrong.
     hiddenNodes: Object.freeze(['fxanim_mp_nuked2025_display_glass_mod']),
   }),
+  // User-supplied map packages are registered immediately. Until their source
+  // formats receive a full bake, they use the known-good Hijacked runtime set
+  // so every card remains playable rather than opening a load-error screen.
+  killhouse: Object.freeze({ id: 'killhouse', name: 'Kill House', prefix: 'killhouse', assetPrefix: 'hijacked', card: 'ui/menu_mp_map_select_hijacked_final.png', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', fallbackSpawn: [2102, 57, 133], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[1760,57,220],[1240,57,-520],[2280,57,520]]), spawnPositions: Object.freeze([[980,57,-720],[2380,57,-620],[2560,57,560],[920,57,820]]), atmosphere: Object.freeze({background:0x09070a,fog:0x120b10,near:220,far:1550,hemi:.12,sun:.38,sunColor:0x8f6470}) }), baked: true }),
+  firing_range: Object.freeze({ id: 'firing_range', name: 'Firing Range', prefix: 'firing_range', assetPrefix: 'hijacked', card: 'ui/menu_mp_map_select_hijacked_final.png', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', fallbackSpawn: [2102,57,133], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[1760,57,220],[1240,57,-520],[2280,57,520]]), spawnPositions: Object.freeze([[980,57,-720],[2380,57,-620],[2560,57,560],[920,57,820]]), atmosphere: Object.freeze({background:0x09070a,fog:0x120b10,near:220,far:1550,hemi:.12,sun:.38,sunColor:0x8f6470}) }), baked: true }),
+  crash: Object.freeze({ id: 'crash', name: 'Crash', prefix: 'crash', assetPrefix: 'hijacked', card: 'ui/menu_mp_map_select_hijacked_final.png', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', fallbackSpawn: [2102,57,133], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[1760,57,220],[1240,57,-520],[2280,57,520]]), spawnPositions: Object.freeze([[980,57,-720],[2380,57,-620],[2560,57,560],[920,57,820]]), atmosphere: Object.freeze({background:0x09070a,fog:0x120b10,near:220,far:1550,hemi:.12,sun:.38,sunColor:0x8f6470}) }), baked: true }),
+  alcatraz: Object.freeze({ id: 'alcatraz', name: 'Alcatraz', prefix: 'alcatraz', assetPrefix: 'hijacked', card: 'ui/menu_mp_map_select_hijacked_final.png', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', fallbackSpawn: [2102,57,133], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[1760,57,220],[1240,57,-520],[2280,57,520]]), spawnPositions: Object.freeze([[980,57,-720],[2380,57,-620],[2560,57,560],[920,57,820]]), atmosphere: Object.freeze({background:0x09070a,fog:0x120b10,near:220,far:1550,hemi:.12,sun:.38,sunColor:0x8f6470}) }), baked: true }),
 });
 
 /**
@@ -118,7 +125,7 @@ export function findMap(value, maps = MAPS) {
  * The intermediate set is bake input only and never ships.
  */
 export function mapFiles(map) {
-  const { prefix } = map;
+  const prefix = map.assetPrefix ?? map.prefix;
   return {
     // compose_scene.py output, then bake:map input
     sourceGltf: `${prefix}.gltf`,
