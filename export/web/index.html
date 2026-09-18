@@ -460,6 +460,7 @@
     position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
     background: url('ui/hud/overlay_low_health.png') center/cover no-repeat;
   }
+  body.zombies-mode #damage { filter: sepia(1) saturate(2.2) hue-rotate(305deg); }
   #match-status {
     position: fixed; z-index: 2; top: 18px; left: 50%; transform: translateX(-50%);
     min-width: 210px; padding: 7px 16px; text-align: center; opacity: 0;
@@ -467,6 +468,16 @@
     font: 600 14px/1.25 var(--fe-ui); letter-spacing: .12em; pointer-events: none;
   }
   #match-status small { color: rgba(220, 235, 245, .72); letter-spacing: .18em; }
+  body.zombies-mode #match-status {
+    min-width: 280px; color: #ffd9d4; background: rgba(22, 2, 5, .82);
+    border-bottom-color: #b51f2a; text-shadow: 0 0 10px rgba(255, 37, 45, .55);
+  }
+  body.zombies-mode #match-status small { color: #f28b83; }
+  body.zombies-mode.hellhound-round #match-status {
+    color: #fff0cf; border-bottom-color: #ff7b2f; background: rgba(38, 8, 2, .88);
+    animation: hellhound-alert .7s ease-in-out infinite alternate;
+  }
+  @keyframes hellhound-alert { from { box-shadow: 0 0 8px rgba(255, 48, 25, .18); } to { box-shadow: 0 0 24px rgba(255, 48, 25, .65); } }
   #killfeed {
     position: fixed; z-index: 2; top: 20px; right: 18px; width: 300px;
     display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
@@ -742,7 +753,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
   <div id="hud-weapon-name"></div>
   <div id="hud-ammo-row"></div>
 </div>
-<div id="match-status"></div>
+<div id="match-status" aria-live="polite"></div>
 <div id="killfeed"></div>
 <div id="medals"></div>
 <div id="death-card"><strong id="death-killer"></strong><span id="respawn-copy"></span></div>
@@ -812,7 +823,7 @@ import { ViewBob } from './view-bob.js';
 import { WeaponController } from './weapon-controller.js';
 import { WeaponEffects } from './weapon-effects.js';
 import { EnemyManager } from './enemy-system.js';
-import { ZombieManager } from './zombies.js';
+import { ZombieManager, ZOMBIES_CONFIG } from './zombies.js';
 import { PlayerHealth } from './player-health.js';
 import { FreeForAllMatch } from './free-for-all-match.js';
 import { MedalTracker } from './medals.js';
@@ -851,10 +862,11 @@ const activeMap = MAPS[resolveMapId({ search: location.search, storage: mapStora
 const zombiesMode = new URLSearchParams(location.search).get('mode') === 'zombies';
 const activeMapFiles = mapFiles(activeMap);
 rememberMap(mapStorage, activeMap.id);
-
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87a8c8);
-scene.fog = new THREE.Fog(0x87a8c8, HAZE.near, HAZE.far);
+const zombiesAtmosphere = activeMap.zombies?.atmosphere ?? { background: 0x09070a, fog: 0x120b10, near: 220, far: 1550 };
+scene.background = new THREE.Color(zombiesMode ? zombiesAtmosphere.background : 0x87a8c8);
+scene.fog = new THREE.Fog(zombiesMode ? zombiesAtmosphere.fog : 0x87a8c8, zombiesMode ? zombiesAtmosphere.near : HAZE.near, zombiesMode ? zombiesAtmosphere.far : HAZE.far);
+if (zombiesMode) document.body.classList.add('zombies-mode');
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 1, 20000);
 camera.rotation.order = 'YXZ';
@@ -957,8 +969,10 @@ let weapon = null;
 // the flat-lit values they had before the environment existed; if the env
 // assets fail to load these still light the scene on their own.
 const hemi = new THREE.HemisphereLight(0xbfd8ff, 0x3a4a55, 0.35);
+if (zombiesMode) hemi.intensity = zombiesAtmosphere.hemi ?? 0.12;
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff2d8, 1.1);
+if (zombiesMode) { sun.intensity = zombiesAtmosphere.sun ?? 0.38; sun.color.set(zombiesAtmosphere.sunColor ?? 0x8f6470); }
 sun.position.set(-800, 1200, 600);
 scene.add(sun);
 
@@ -2696,6 +2710,10 @@ document.addEventListener('keydown', (event) => {
   if (event.code === 'KeyE' && locked) meleeAttack();
   if (event.code === 'KeyG' && locked) beginGrenade('lethal');
   if (event.code === 'KeyQ' && locked) beginGrenade('tactical');
+  if (event.code === 'KeyM' && locked && zombiesMode && zombies) {
+    const roll = zombies.openMysteryBox();
+    if (roll.ok) matchStatus.innerHTML = `MYSTERY BOX · ${roll.weapon.name.toUpperCase()} <small>· ${zombies.hudState().points} POINTS REMAINING</small>`;
+  }
   if (event.code === 'KeyB' && locked) {
     if (playerHealth) playerHealth.respawn();
     else player?.respawn();
@@ -2880,10 +2898,17 @@ async function start() {
     });
 
     navigation = await navPromise;
-    if (zombiesMode) zombies = new ZombieManager({scene, player, playerHealth, navigation, hints,
-      onRound: (round, stats) => { matchStatus.innerHTML = `ROUND ${round} <small>· ${stats.count} HOSTILES INBOUND</small>`; },
+    if (zombiesMode) zombies = new ZombieManager({scene, player, playerHealth, navigation, hints: { ...hints, mysteryBoxPositions: activeMap.zombies?.mysteryBoxPositions, spawns: activeMap.zombies?.spawnPositions ?? hints?.spawns }, config: { ...ZOMBIES_CONFIG, ...(activeMap.zombies ?? {}) },
+      onBoxReward: (result) => {
+        const slot = weaponSlots.get(result.weaponId);
+        if (slot) {
+          loadWeaponSlot(slot).then(() => selectWeapon(result.weaponId));
+        }
+        matchStatus.innerHTML = `MYSTERY BOX · ${result.weapon.name.toUpperCase()} <small>· ${slot ? 'WEAPON EQUIPPED' : 'ASSET PENDING CONVERSION'}</small>`;
+      },
+      onRound: (round, stats) => { document.body.classList.toggle('hellhound-round', Boolean(stats.hellhound)); matchStatus.innerHTML = stats.hellhound ? `HELLHOUND ROUND ${round} <small>· ${stats.count} INFERNO HOUNDS INBOUND</small>` : `ROUND ${round} <small>· ${stats.count} HOSTILES INBOUND</small>`; },
       onGameOver: () => { matchResult.textContent = 'GAME OVER · ALL OPERATIVES DOWN'; scoreboard.classList.add('visible'); },
-      onHud: (state) => { if (!state) return; matchStatus.innerHTML = `ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}</small>`; }
+      onHud: (state) => { if (!state) return; document.body.classList.toggle('hellhound-round', state.roundType === 'hellhound'); const box = state.boxCooldown > 0 ? ` · BOX ${state.boxCooldown.toFixed(1)}s` : state.boxInRange ? ` · BOX ${state.boxCost} [M]` : ` · BOX ${Math.round(state.boxDistance)}m`; matchStatus.innerHTML = state.roundType === 'hellhound' ? `HELLHOUND ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}${box}</small>` : `ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}${box}</small>`; }
     });
     if (navigation?.debugDrawer) scene.add(navigation.debugDrawer);
     if (navigation?.crowdHelper) scene.add(navigation.crowdHelper);

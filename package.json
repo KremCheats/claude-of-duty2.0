@@ -4,6 +4,9 @@
   "private": true,
   "description": "Merk Of Duty: Black Ops Mobile \u2014 a browser-based Three.js shooter on the Hijacked map export.",
   "scripts": {
+    "assets:convert": "python3 .tools/convert_asset_package.py",
+    "assets:batch": "python3 .tools/convert_asset_batch.py",
+    "maps:audit": "node .tools/audit_maps.mjs",
     "cloudflare:stage": "node .tools/stage_cloudflare.mjs",
     "cloudflare:dev": "npm run cloudflare:stage && npx wrangler pages dev",
     "cloudflare:deploy": "npm run cloudflare:stage && npx wrangler pages deploy",

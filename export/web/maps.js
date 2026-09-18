@@ -29,6 +29,12 @@ export const MAPS = Object.freeze({
     // Names of the dumped source assets bake:env reads. They follow the
     // worldspawn's skyboxmodel and lutmaterial keys, not the map id.
     sources: { sky: 'skybox_mp_hijacked_ft', lut: 'mp_hijacked_lut_win', vision: 'mp_hijacked' },
+    zombies: Object.freeze({
+      spawnProtection: 650,
+      mysteryBoxPositions: Object.freeze([[1760, 57, 220], [1240, 57, -520], [2280, 57, 520], [1510, 57, 760]]),
+      spawnPositions: Object.freeze([[980, 57, -720], [2380, 57, -620], [2560, 57, 560], [920, 57, 820], [1840, 57, -940]]),
+      atmosphere: Object.freeze({ background: 0x09070a, fog: 0x120b10, near: 220, far: 1550, hemi: 0.12, sun: 0.38, sunColor: 0x8f6470 }),
+    }),
     baked: true,
   }),
   mp_nuketown_2020: Object.freeze({
@@ -49,6 +55,12 @@ export const MAPS = Object.freeze({
     fallbackSpawn: [0, 0, 0],
     // The LUT material mp_nuketown2020_lut samples the image mp_nuketown2020_win.
     sources: { sky: 'skybox_mp_nuketown2020_ft', lut: 'mp_nuketown2020_win', vision: 'mp_nuketown_2020' },
+    zombies: Object.freeze({
+      spawnProtection: 520,
+      mysteryBoxPositions: Object.freeze([[420, 0, 380], [-420, 0, 380], [420, 0, -380], [-420, 0, -380]]),
+      spawnPositions: Object.freeze([[760, 0, 760], [-760, 0, 760], [760, 0, -760], [-760, 0, -760], [0, 0, -920]]),
+      atmosphere: Object.freeze({ background: 0x09070a, fog: 0x140b10, near: 190, far: 1320, hemi: 0.09, sun: 0.3, sunColor: 0x7e5968 }),
+    }),
     // Geometry, collision, navmesh and props are baked. Textures, sky, LUT,
     // radar and title card wait on the zone's image pack (see README).
     baked: true,
