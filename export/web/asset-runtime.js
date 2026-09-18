@@ -1,4 +1,5 @@
 import { PENDING_ASSETS, assetById } from './asset-catalog.js';
+import { hostedAssetUrl } from './hosted-assets.js';
 
 export const PENDING_WEAPON_DEFINITIONS = Object.freeze({
   hamr: Object.freeze({ id: 'hamr', name: 'HAMR', class: 'primary', assetId: 'hamr', status: 'pending-conversion' }),
@@ -30,6 +31,10 @@ export function isReadyAsset(id) {
 
 export function sourceForAsset(id) {
   return assetById(id)?.source ?? null;
+}
+
+export function runtimeAssetUrl(id) {
+  return hostedAssetUrl(id) ?? assetById(id)?.stagedPath ?? null;
 }
 
 export function catalogSummary() {
