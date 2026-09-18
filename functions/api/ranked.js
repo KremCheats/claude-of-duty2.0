@@ -1,3 +1,59 @@
-import { calculateRP, rankForRP, updateMMR, validateMatch } from '../../export/web/ranked.js';
-export async function onRequestGet({request,env}){const id=new URL(request.url).searchParams.get('playerId')||'guest';const row=await env.MERK_DB?.prepare('SELECT * FROM ranked_players WHERE player_id=? AND season_number=1').bind(id).first();return Response.json(row||{player_id:id,season_number:1,rp:0,mmr:1000,wins:0,losses:0,kills:0,deaths:0,assists:0,games_played:0,rank_protection:1,top_gun:'M27'});}
-export async function onRequestPost({request,env}){const b=await request.json();const valid=validateMatch(b);if(!valid.ok)return Response.json(valid,{status:400});const duplicate=await env.MERK_DB?.prepare('SELECT match_id FROM ranked_match_history WHERE match_id=?').bind(b.matchId).first();if(duplicate)return Response.json({ok:false,error:'duplicate_match_reward'},{status:409});const prior=await env.MERK_DB?.prepare('SELECT * FROM ranked_players WHERE player_id=? AND season_number=1').bind(b.playerId).first()||{rp:0,mmr:1000,wins:0,losses:0,kills:0,deaths:0,assists:0,games_played:0,rank_protection:1,top_gun:'M27'};const calc=calculateRP({...b,currentRp:prior.rp,mmr:prior.mmr,opponentMmr:Number(b.opponentMmr||prior.mmr)});let delta=calc.rp;if(delta<0&&prior.rank_protection>0&&prior.rp>=300){delta=0;}const rp=Math.max(0,prior.rp+delta);const mmr=updateMMR({mmr:prior.mmr,won:Boolean(b.won),performanceRating:calc.performanceRating,opponentMmr:Number(b.opponentMmr||prior.mmr)});const protection=delta===0&&calc.rp<0?Math.max(0,prior.rank_protection-1):prior.rank_protection;const topGun=String(b.topGun||prior.top_gun||'M27').slice(0,32);await env.MERK_DB?.prepare('INSERT INTO ranked_players (player_id,season_number,rp,mmr,wins,losses,kills,deaths,assists,games_played,rank_protection,top_gun) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(player_id,season_number) DO UPDATE SET rp=excluded.rp,mmr=excluded.mmr,wins=excluded.wins,losses=excluded.losses,kills=excluded.kills,deaths=excluded.deaths,assists=excluded.assists,games_played=excluded.games_played,rank_protection=excluded.rank_protection,top_gun=excluded.top_gun').bind(b.playerId,1,rp,mmr,prior.wins+(b.won?1:0),prior.losses+(b.won?0:1),prior.kills+Number(b.kills),prior.deaths+Number(b.deaths),prior.assists+Number(b.assists),prior.games_played+1,protection,topGun).run();await env.MERK_DB?.prepare('INSERT INTO ranked_match_history (match_id,player_id,season_number,won,rp_change,kills,deaths,assists,objective,performance_rating,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)').bind(b.matchId,b.playerId,1,b.won?1:0,delta,b.kills,b.deaths,b.assists,b.objective,b.performanceRating||calc.performanceRating).run();return Response.json({ok:true,rp,delta,rank:rankForRP(rp),mmr,rankProtection:protection,performanceRating:calc.performanceRating,topGun});}
+import { calculateRP, rankForRP, updateMMR } from '../../export/web/ranked.js';
+import {
+  json, noStore, readJson, rejectMethod, requireSameOrigin, requireSession,
+  requestHeaders, validateRankedMatch, validationError,
+} from './_security.js';
+
+const emptyRanked = accountId => ({ player_id: accountId, season_number: 1, rp: 0, mmr: 1000, wins: 0, losses: 0, kills: 0, deaths: 0, assists: 0, games_played: 0, rank_protection: 1, top_gun: 'M27' });
+
+export async function onRequestGet({ request, env }) {
+  const methodError = rejectMethod(request, ['GET']);
+  if (methodError) return methodError;
+  if (!env.MERK_DB) return json({ error: 'ranked service unavailable' }, 503, requestHeaders());
+  const auth = await requireSession(request, env);
+  if (!auth.ok) return auth.response;
+  try {
+    const row = await env.MERK_DB.prepare('SELECT * FROM ranked_players WHERE player_id = ? AND season_number = 1').bind(auth.session.account_id).first();
+    return json(row || emptyRanked(auth.session.account_id), 200, requestHeaders());
+  } catch {
+    return json({ error: 'ranked service unavailable' }, 503, requestHeaders());
+  }
+}
+
+export async function onRequestPost({ request, env }) {
+  const methodError = rejectMethod(request, ['POST']);
+  if (methodError) return methodError;
+  if (!requireSameOrigin(request)) return json({ error: 'cross-origin' }, 403, noStore);
+  if (!env.MERK_DB) return json({ error: 'ranked service unavailable' }, 503, requestHeaders());
+  const auth = await requireSession(request, env);
+  if (!auth.ok) return auth.response;
+  let body;
+  try { body = await readJson(request); } catch (error) { return validationError(error); }
+  let input;
+  try { input = validateRankedMatch(body); } catch (error) { return validationError(error); }
+  try {
+    const duplicate = await env.MERK_DB.prepare('SELECT match_id FROM ranked_match_history WHERE match_id = ?').bind(input.matchId).first();
+    if (duplicate) return json({ ok: false, error: 'duplicate_match_reward' }, 409, requestHeaders());
+    const prior = await env.MERK_DB.prepare('SELECT * FROM ranked_players WHERE player_id = ? AND season_number = 1').bind(auth.session.account_id).first() || emptyRanked(auth.session.account_id);
+    const calc = calculateRP({ ...input, currentRp: prior.rp, mmr: prior.mmr, opponentMmr: input.opponentMmr || prior.mmr });
+    let delta = calc.rp;
+    if (delta < 0 && prior.rank_protection > 0 && prior.rp >= 300) delta = 0;
+    const rp = Math.max(0, prior.rp + delta);
+    const mmr = updateMMR({ mmr: prior.mmr, won: input.won, performanceRating: calc.performanceRating, opponentMmr: input.opponentMmr || prior.mmr });
+    const protection = delta === 0 && calc.rp < 0 ? Math.max(0, prior.rank_protection - 1) : prior.rank_protection;
+    const topGun = input.topGun || prior.top_gun || 'M27';
+    await env.MERK_DB.prepare(`INSERT INTO ranked_players
+      (player_id, season_number, rp, mmr, wins, losses, kills, deaths, assists, games_played, rank_protection, top_gun)
+      VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(player_id, season_number) DO UPDATE SET rp=excluded.rp, mmr=excluded.mmr,
+      wins=excluded.wins, losses=excluded.losses, kills=excluded.kills, deaths=excluded.deaths,
+      assists=excluded.assists, games_played=excluded.games_played, rank_protection=excluded.rank_protection,
+      top_gun=excluded.top_gun`).bind(auth.session.account_id, rp, mmr, prior.wins + (input.won ? 1 : 0), prior.losses + (input.won ? 0 : 1), prior.kills + input.kills, prior.deaths + input.deaths, prior.assists + input.assists, prior.games_played + 1, protection, topGun).run();
+    await env.MERK_DB.prepare(`INSERT INTO ranked_match_history
+      (match_id, player_id, season_number, won, rp_change, kills, deaths, assists, objective, performance_rating, created_at)
+      VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`).bind(input.matchId, auth.session.account_id, input.won ? 1 : 0, delta, input.kills, input.deaths, input.assists, input.objective, input.performanceRating ?? calc.performanceRating).run();
+    return json({ ok: true, rp, delta, rank: rankForRP(rp), mmr, rankProtection: protection, performanceRating: calc.performanceRating, topGun }, 200, requestHeaders());
+  } catch {
+    return json({ error: 'ranked service unavailable' }, 503, requestHeaders());
+  }
+}

@@ -1,3 +1,56 @@
-const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json'}});
-async function digest(value){const data=new TextEncoder().encode(value);const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('')}
-export async function onRequestPost({request,env}){try{const b=await request.json(),action=String(b.action||''),email=String(b.email||'').trim().toLowerCase(),password=String(b.password||''),displayName=String(b.displayName||'').trim().replace(/^@/,'').slice(0,18);if(!email||!email.includes('@')||password.length<8||(action==='signup'&&!displayName))return json({error:'valid email, 8+ character password, and in-game name required'},400);if(!env.MERK_DB)return json({error:'account service unavailable'},503);const existing=await env.MERK_DB.prepare('SELECT * FROM accounts WHERE email=?').bind(email).first();if(action==='signup'){if(existing)return json({error:'email already registered'},409);const id=crypto.randomUUID(),hash=await digest(password+'::merk-of-duty-v1');await env.MERK_DB.prepare('INSERT INTO accounts (account_id,email,password_hash,display_name) VALUES (?,?,?,?)').bind(id,email,hash,displayName).run();return json({ok:true,accountId:id,displayName:'@'+displayName})}if(action==='login'){if(!existing||existing.password_hash!==(await digest(password+'::merk-of-duty-v1')))return json({error:'invalid email or password'},401);return json({ok:true,accountId:existing.account_id,displayName:'@'+existing.display_name})}return json({error:'unsupported action'},400)}catch(e){return json({error:'auth request failed'},500)}}
+import {
+  authCookieHeader, clearedCookieHeader, cleanupExpiredSessions, createSession, deleteSession,
+  getSession, hashPassword, json, legacyPasswordHash, isLegacyHash, noStore,
+  parseCookies, readJson, rejectMethod, requireSameOrigin, requestHeaders, validateAuth,
+  verifyPassword, validationError,
+} from './_security.js';
+
+export async function onRequestGet({ request, env }) {
+  if (!env.MERK_DB) return json({ error: 'account service unavailable' }, 503, requestHeaders());
+  const session = await getSession(request, env);
+  return session
+    ? json({ authenticated: true, accountId: session.account_id, displayName: `@${session.display_name}` }, 200, requestHeaders())
+    : json({ authenticated: false }, 200, requestHeaders());
+}
+
+export async function onRequestPost({ request, env }) {
+  const methodError = rejectMethod(request, ['POST']);
+  if (methodError) return methodError;
+  if (!requireSameOrigin(request)) return json({ error: 'cross-origin' }, 403, noStore);
+  if (!env.MERK_DB) return json({ error: 'account service unavailable' }, 503, requestHeaders());
+  let body;
+  try { body = await readJson(request); } catch (error) { return validationError(error); }
+  let input;
+  try { input = validateAuth(body); } catch (error) { return validationError(error); }
+
+  try {
+    if (input.action === 'logout') {
+      await deleteSession(request, env);
+      return json({ ok: true }, 200, { ...requestHeaders(), 'set-cookie': clearedCookieHeader });
+    }
+    await cleanupExpiredSessions(env.MERK_DB);
+    const existing = await env.MERK_DB.prepare('SELECT * FROM accounts WHERE email = ?').bind(input.email).first();
+    if (input.action === 'signup') {
+      if (existing) return json({ error: 'email already registered' }, 409, requestHeaders());
+      const accountId = crypto.randomUUID();
+      const passwordHash = await hashPassword(input.password);
+      await env.MERK_DB.prepare('INSERT INTO accounts (account_id, email, password_hash, display_name) VALUES (?, ?, ?, ?)').bind(accountId, input.email, passwordHash, input.displayName).run();
+      const token = await createSession(env.MERK_DB, accountId);
+      return json({ ok: true, accountId, displayName: `@${input.displayName}` }, 201, { ...requestHeaders(), 'set-cookie': authCookieHeader(token) });
+    }
+    if (!existing) return json({ error: 'invalid email or password' }, 401, requestHeaders());
+    let valid = await verifyPassword(input.password, existing.password_hash);
+    if (!valid && isLegacyHash(existing.password_hash)) {
+      valid = existing.password_hash === await legacyPasswordHash(input.password);
+      if (valid) {
+        const upgraded = await hashPassword(input.password);
+        await env.MERK_DB.prepare('UPDATE accounts SET password_hash = ? WHERE account_id = ?').bind(upgraded, existing.account_id).run();
+      }
+    }
+    if (!valid) return json({ error: 'invalid email or password' }, 401, requestHeaders());
+    const token = await createSession(env.MERK_DB, existing.account_id);
+    return json({ ok: true, accountId: existing.account_id, displayName: `@${existing.display_name}` }, 200, { ...requestHeaders(), 'set-cookie': authCookieHeader(token) });
+  } catch {
+    return json({ error: 'auth request failed' }, 500, requestHeaders());
+  }
+}

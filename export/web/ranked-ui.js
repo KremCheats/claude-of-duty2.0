@@ -21,7 +21,7 @@ function render(p) {
 }
 async function refresh() {
   let p = get();
-  try { const r = await fetch(`/api/ranked?playerId=${encodeURIComponent(p.playerId)}`); if (r.ok) p = { ...p, ...(await r.json()) }; } catch {}
+  try { const r = await fetch('/api/ranked'); if (r.ok) p = { ...p, ...(await r.json()) }; } catch {}
   save(p); render(p); return p;
 }
 function showResults(r) {
@@ -33,7 +33,7 @@ function showResults(r) {
   $('#merk-result-xp').textContent = `${r.xp || 420} XP`; modal.hidden = false;
 }
 async function submitDemoMatch() {
-  const p = get(); const body = { matchId:`demo-${Date.now()}`, playerId:p.playerId, won:true, kills:18, deaths:7, assists:5, objective:1240, damage:0, performanceRating:86, topGun:'M27' };
+  const p = get(); const body = { matchId:`demo-${Date.now()}`, won:true, kills:18, deaths:7, assists:5, objective:1240, damage:0, performanceRating:86, topGun:'M27' };
   try { const response = await fetch('/api/ranked', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body) }); if (response.ok) { const updated = await response.json(); await refresh(); showResults({ ...body, ...updated, rp:updated.rp, delta:updated.delta, xp:420 }); return; } } catch {}
   showResults({ ...body, rp:p.rp+28, delta:28, xp:420 });
 }

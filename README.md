@@ -159,10 +159,14 @@ npm run cloudflare:stage
 npm run cloudflare:dev
 ```
 
-Apply `migrations/0001_play_counter.sql` to both D1 databases once, then deploy
-the staged package with `npm run cloudflare:deploy`. Branch deployments select
-the preview database through `CF_PAGES_BRANCH`; only `main` uses the production
-counter. To exercise the exact staged package locally, set
+Apply migrations `0001` through `0007` to the production and preview D1
+databases in order before deploying the staged package. Migration `0007` creates
+the server-side session table used by account, profile, lobby, and ranked APIs;
+without it, those APIs intentionally fail closed. Use Wrangler's D1 migration
+workflow or apply the SQL files once per database, then deploy the staged
+package with `npm run cloudflare:deploy`. Branch deployments select the preview
+database through `CF_PAGES_BRANCH`; only `main` uses the production counter. To
+exercise the exact staged package locally, set
 `AI_GAME_WEB_ROOT=.work/cloudflare-pages` and run `npm run ai:test`; set
 `AI_GAME_MAP=mp_nuketown_2020` to check Nuketown.
 
