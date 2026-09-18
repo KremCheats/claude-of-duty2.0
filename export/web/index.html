@@ -856,11 +856,18 @@ import { WEAPON_CAMO_IDS, randomPick } from './skins.js';
 import { GrenadeManager, throwOrigin, throwVelocity } from './grenades.js';
 import { animateWater } from './lighting.js';
 
-// Which map this page load plays. `?map=` wins, then the remembered choice.
-// Reading `localStorage` throws in a sandboxed frame, hence the guard.
+// Standard modes rotate maps automatically. Custom mode is the one exception:
+// it honors ?map= and the remembered selection so players can practice a
+// specific map. Reading localStorage throws in a sandboxed frame, hence guard.
 const mapStorage = (() => { try { return window.localStorage; } catch { return null; } })();
-const activeMap = MAPS[resolveMapId({ search: location.search, storage: mapStorage })];
-const zombiesMode = new URLSearchParams(location.search).get('mode') === 'zombies';
+const mapParams = new URLSearchParams(location.search);
+const gameMode = mapParams.get('mode') ?? 'multiplayer';
+const customMode = gameMode === 'custom';
+const selectedMapId = customMode
+  ? resolveMapId({ search: location.search, storage: mapStorage })
+  : MAP_IDS[Math.floor(Math.random() * MAP_IDS.length)];
+const activeMap = MAPS[selectedMapId] ?? MAPS[MAP_IDS[0]];
+const zombiesMode = gameMode === 'zombies';
 const activeMapFiles = mapFiles(activeMap);
 rememberMap(mapStorage, activeMap.id);
 const scene = new THREE.Scene();
