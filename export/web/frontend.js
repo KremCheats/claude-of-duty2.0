@@ -31,7 +31,7 @@ export const SCREENS = ['welcome', 'loading', 'title', 'pause', 'class', 'error'
 
 export class Frontend {
   constructor({
-    elements = null, onPlay = null, onResume = null, onSelectWeapon = null, onSelectLoadout = null, onOpenClass = null,
+    elements = null, onPlay = null, onResume = null, onSelectWeapon = null, onSelectLoadout = null, onOpenClass = null, onPreviewWeapon = null,
     waitingForInput = false,
   } = {}) {
     this.elements = elements;
@@ -44,6 +44,7 @@ export class Frontend {
     // Fired when the class screen opens so the game can fetch the rifles it
     // has not loaded yet. Only a player who browses classes pays for them.
     this.onOpenClass = onOpenClass;
+    this.onPreviewWeapon = onPreviewWeapon;
 
     this.screen = waitingForInput ? 'welcome' : 'loading';
     this.playing = false;
@@ -60,6 +61,7 @@ export class Frontend {
     this.classes = [{ id: 'primary', label: 'Primary', hint: '' }];
     this.activeClass = 'primary';
     this.loadout = {};
+    this.attachments = {};
     this.classReturnScreen = 'title';
 
     this.bindElements();
@@ -328,7 +330,17 @@ export class Frontend {
     this.loadout[option.class] = option.id;
     this.activeClass = this.classes.some((cls) => cls.id === option.class) ? option.class : this.activeClass;
     this.render();
+    this.onPreviewWeapon?.(option, this.attachments[option.id] ?? 'iron_sights');
     return option.id;
+  }
+
+  chooseAttachment(attachment) {
+    const selected = this.weaponOptions.find((weapon) => weapon.id === this.loadout[this.activeClass]);
+    if (!selected) return false;
+    this.attachments[selected.id] = String(attachment ?? 'iron_sights');
+    this.render();
+    this.onPreviewWeapon?.(selected, this.attachments[selected.id]);
+    return this.attachments[selected.id];
   }
 
   /** Confirm the loadout through the game-side selectors, then return to shell. */
@@ -395,6 +407,7 @@ export class Frontend {
       selectedWeapon: this.selectedWeapon,
       activeClass: this.activeClass,
       loadout: { ...this.loadout },
+      attachments: { ...this.attachments },
     };
   }
 

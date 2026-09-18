@@ -184,6 +184,24 @@
   #blocker[data-screen="pause"] .fe-wordmark::after { margin-top: 14px; }
   #blocker[data-screen="pause"] .fe-sub { display: none; }
   .fe-buttons { display: flex; flex-direction: column; gap: 7px; }
+  .merk-auth-panel { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 18px; background: rgba(1,5,8,.86); }
+  .merk-auth-panel[hidden] { display: none; }
+  .merk-auth-card { position: relative; display: flex; flex-direction: column; gap: 12px; width: min(420px, 100%); padding: 26px; color: #edf9f5; background: #08131a; border: 1px solid #ff6422; box-shadow: 0 18px 80px #000; }
+  .merk-auth-card h2 { margin: 0; color: #ff7841; letter-spacing: .08em; text-transform: uppercase; }
+  .merk-auth-card p { margin: 0 0 8px; color: #9bb0b8; font-size: 12px; line-height: 1.45; }
+  .merk-auth-card label { display: grid; gap: 5px; color: #9bb0b8; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .merk-auth-card input { min-height: 44px; padding: 0 12px; color: #fff; background: #10232d; border: 1px solid #41606b; font: inherit; }
+  .merk-auth-card .merk-icon-btn { position: absolute; top: 10px; right: 10px; }
+  .fe-class-preview { display: grid; grid-template-columns: 180px 1fr; gap: 16px; width: min(720px, 94vw); padding: 14px; border: 1px solid #ff642255; background: #071118cc; }
+  .fe-class-preview-art { display: grid; place-items: center; min-height: 100px; color: #ff7841; background: radial-gradient(circle, #29404a, #0b171e 70%); text-align: center; font-size: 11px; letter-spacing: .1em; }
+  .fe-class-preview-art img { max-width: 100%; max-height: 100px; object-fit: contain; }
+  .fe-class-preview-copy { display: grid; align-content: center; gap: 8px; }
+  .fe-class-preview-copy strong { color: #edf9f5; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+  .fe-class-preview-copy small { color: #9bb0b8; line-height: 1.4; }
+  .fe-attachment-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fe-attachment { min-height: 36px; padding: 0 10px; color: #c9d8dc; background: #122832; border: 1px solid #43636d; font: inherit; font-size: 10px; cursor: pointer; }
+  .fe-attachment[data-selected="true"] { color: #08131a; background: #ff7841; border-color: #ff7841; }
+  @media(max-width:560px){.fe-class-preview{grid-template-columns:1fr}.fe-class-preview-art{min-height:72px}}
   .fe-btn {
     position: relative; appearance: none; border: 0; background: none;
     width: 258px; height: 34px; cursor: pointer; color: #e6f2ff;
@@ -694,6 +712,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
         <button type="button" class="fe-btn" data-action="class">Create a class</button>
         <button type="button" class="fe-btn" data-action="map">Change map</button>
         <button type="button" class="fe-btn" data-action="settings">Settings</button>
+        <button type="button" class="fe-btn" data-action="auth">Account / sign in</button>
         <button type="button" class="fe-btn" data-action="exit">Exit to lobby</button>
         <button type="button" class="fe-btn" data-action="respawn">Respawn</button>
         <button type="button" class="fe-btn" data-action="navmesh">Navmesh overlay</button>
@@ -710,6 +729,14 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       </div>
       <!-- Tabs and cards are built from weapons.js at start-up. -->
       <div class="fe-class-tabs" id="fe-class-tabs"></div>
+      <section class="fe-class-preview" id="fe-class-preview" aria-live="polite">
+        <div class="fe-class-preview-art" id="fe-class-preview-art">SELECT A WEAPON</div>
+        <div class="fe-class-preview-copy">
+          <strong id="fe-class-preview-name">Weapon preview</strong>
+          <small id="fe-class-preview-meta">Choose a card to inspect its stats and attachments.</small>
+          <div class="fe-attachment-list" id="fe-attachment-list" aria-label="Attachments"></div>
+        </div>
+      </section>
       <div class="fe-class-grid" id="fe-class-grid"></div>
       <div class="fe-class-actions">
         <button type="button" class="fe-btn" data-action="class-confirm">Equip class</button>
@@ -773,6 +800,19 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
     <button type="button" class="fe-btn touch-only" id="touch-restart" hidden>Play again</button>
   </div>
 </div>
+<section id="merk-auth-panel" class="merk-auth-panel" hidden aria-label="Account sign in">
+  <form id="merk-auth-form" class="merk-auth-card">
+    <button type="button" id="merk-auth-close" class="merk-icon-btn" aria-label="Close">×</button>
+    <span class="merk-kicker">MERK NETWORK // ACCOUNT</span>
+    <h2 id="merk-auth-title">Sign in</h2>
+    <p id="merk-auth-status">Sign in to save your profile and play online.</p>
+    <label>Email<input id="merk-auth-email" type="email" autocomplete="email" required maxlength="254"></label>
+    <label id="merk-auth-name-label" hidden>Display name<input id="merk-auth-name" type="text" autocomplete="nickname" maxlength="24"></label>
+    <label>Password<input id="merk-auth-password" type="password" autocomplete="current-password" required minlength="8" maxlength="128"></label>
+    <button type="submit" class="merk-primary" id="merk-auth-submit">Sign in</button>
+    <button type="button" class="merk-secondary" id="merk-auth-toggle">Create an account</button>
+  </form>
+</section>
 <div id="scope" data-on="false"><div class="scope-side left"></div><div class="scope-side right"></div><div class="scope-cap top"></div><div class="scope-cap bottom"></div><img id="scope-lens" alt=""></div>
 <div id="crosshair"></div>
 <svg id="hitmarker" viewBox="0 0 26 26" data-kind="torso" aria-hidden="true">
@@ -1344,6 +1384,21 @@ for (const element of [...classCards, ...classTabs]) {
   element.addEventListener('mouseenter', () => menuCue('uin_main_nav'));
   element.addEventListener('click', () => menuCue('uin_main_enter'));
 }
+const classPreviewArt = document.getElementById('fe-class-preview-art');
+const classPreviewName = document.getElementById('fe-class-preview-name');
+const classPreviewMeta = document.getElementById('fe-class-preview-meta');
+const attachmentList = document.getElementById('fe-attachment-list');
+function previewWeapon(entry, attachment = 'iron_sights') {
+  if (!entry) return;
+  classPreviewArt.replaceChildren();
+  if (entry.cardArt) { const image = document.createElement('img'); image.src = entry.cardArt; image.alt = entry.name; classPreviewArt.appendChild(image); }
+  else classPreviewArt.textContent = entry.name.toUpperCase();
+  classPreviewName.textContent = entry.name;
+  classPreviewMeta.textContent = `${entry.role ?? entry.class} · ${entry.roundsPerMinute ? `${entry.roundsPerMinute} RPM · ${entry.damage} damage · ${entry.magazineSize} round mag` : 'equipment'} · preview uses ${attachment.replaceAll('_', ' ')}`;
+  attachmentList.replaceChildren();
+  const options = entry.roundsPerMinute ? ['iron_sights', 'reflex', 'red_dot', ...(entry.scope ? ['acog_scope'] : []), ...(entry.magazineUrl ? ['extended_mag'] : ['fast_mag'])] : [];
+  for (const id of options) { const button = document.createElement('button'); button.type = 'button'; button.className = 'fe-attachment'; button.dataset.attachment = id; button.dataset.selected = String(id === attachment); button.textContent = id.replaceAll('_', ' ').toUpperCase(); button.addEventListener('click', (event) => { event.stopPropagation(); frontend?.chooseAttachment(id); }); attachmentList.appendChild(button); }
+}
 const frontend = new Frontend({
   waitingForInput: blocker.dataset.screen === 'welcome',
   elements: {
@@ -1363,6 +1418,7 @@ const frontend = new Frontend({
   },
   onPlay: () => requestPlay(),
   onResume: () => requestPlay(),
+  onPreviewWeapon: (entry, attachment) => previewWeapon(entry, attachment),
   onSelectLoadout: (picked) => applyLoadout(picked),
   onOpenClass: () => loadAllWeaponSlots(),
 });
@@ -1992,6 +2048,35 @@ function updateMedalPopups() {
 
 // Pause-menu buttons drive the same state the keyboard shortcuts do, so the
 // overlays stay in sync however they were toggled.
+const authPanel = document.getElementById('merk-auth-panel');
+const authForm = document.getElementById('merk-auth-form');
+const authTitle = document.getElementById('merk-auth-title');
+const authStatus = document.getElementById('merk-auth-status');
+const authNameLabel = document.getElementById('merk-auth-name-label');
+const authSubmit = document.getElementById('merk-auth-submit');
+const authToggle = document.getElementById('merk-auth-toggle');
+let authMode = 'login';
+function renderAuthMode() {
+  const signup = authMode === 'signup';
+  authTitle.textContent = signup ? 'Create account' : 'Sign in';
+  authSubmit.textContent = signup ? 'Create account' : 'Sign in';
+  authToggle.textContent = signup ? 'I already have an account' : 'Create an account';
+  authNameLabel.hidden = !signup;
+  document.getElementById('merk-auth-password').autocomplete = signup ? 'new-password' : 'current-password';
+}
+async function refreshAuthStatus() {
+  try { const response = await fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' }); const data = await response.json(); if (data.authenticated) authStatus.textContent = `${data.displayName} signed in. Your profile is protected by a secure session.`; } catch { /* offline play remains available */ }
+}
+authToggle.addEventListener('click', () => { authMode = authMode === 'login' ? 'signup' : 'login'; renderAuthMode(); });
+document.getElementById('merk-auth-close').addEventListener('click', () => { authPanel.hidden = true; });
+authForm.addEventListener('submit', async (event) => {
+  event.preventDefault(); authStatus.textContent = 'Contacting secure account service…'; authSubmit.disabled = true;
+  const body = { action: authMode, email: document.getElementById('merk-auth-email').value.trim(), password: document.getElementById('merk-auth-password').value };
+  if (authMode === 'signup') body.displayName = document.getElementById('merk-auth-name').value.trim();
+  try { const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Authentication failed'); authStatus.textContent = `${data.displayName} authenticated. Online services are ready.`; authForm.reset(); } catch (error) { authStatus.textContent = error.message; } finally { authSubmit.disabled = false; }
+});
+renderAuthMode();
+void refreshAuthStatus();
 function menuAction(name) {
   if (name === 'restart') {
     restartMatch();
@@ -2007,6 +2092,11 @@ function menuAction(name) {
   }
   if (name === 'settings') {
     document.getElementById('touch-settings')?.scrollIntoView({ block: 'center' });
+    return;
+  }
+  if (name === 'auth') {
+    authPanel.hidden = false;
+    document.getElementById('merk-auth-email').focus();
     return;
   }
   if (name === 'exit') {
