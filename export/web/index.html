@@ -325,6 +325,7 @@
   #blocker[data-screen="loading"] .fe-load { display: block; }
   #blocker[data-screen="title"] .fe-start,
   #blocker[data-screen="pause"] .fe-pause { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  #blocker[data-screen="pause"] .fe-buttons { max-height: min(58vh, 460px); overflow-y: auto; padding: 4px 16px; overscroll-behavior: contain; }
   #blocker[data-screen="title"] .fe-controls,
   #blocker[data-screen="pause"] .fe-controls { display: block; }
   #blocker[data-screen="class"] .fe-class { display: flex; }
@@ -686,9 +687,14 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
     </div>
     <div class="fe-pause">
       <h2 class="fe-heading">Paused</h2>
+      <p class="fe-class-sub" id="fe-pause-context">OPERATION PAUSED</p>
       <div class="fe-buttons">
         <button type="button" class="fe-btn" data-action="resume">Resume</button>
+        <button type="button" class="fe-btn" data-action="restart">Restart operation</button>
         <button type="button" class="fe-btn" data-action="class">Create a class</button>
+        <button type="button" class="fe-btn" data-action="map">Change map</button>
+        <button type="button" class="fe-btn" data-action="settings">Settings</button>
+        <button type="button" class="fe-btn" data-action="exit">Exit to lobby</button>
         <button type="button" class="fe-btn" data-action="respawn">Respawn</button>
         <button type="button" class="fe-btn" data-action="navmesh">Navmesh overlay</button>
         <button type="button" class="fe-btn" data-action="collision">Collision overlay</button>
@@ -1987,6 +1993,28 @@ function updateMedalPopups() {
 // Pause-menu buttons drive the same state the keyboard shortcuts do, so the
 // overlays stay in sync however they were toggled.
 function menuAction(name) {
+  if (name === 'restart') {
+    restartMatch();
+    requestPlay();
+    return;
+  }
+  if (name === 'map') {
+    const url = new URL(location.href);
+    if (customMode) url.searchParams.set('map', MAP_IDS[Math.floor(Math.random() * MAP_IDS.length)]);
+    else url.searchParams.delete('map');
+    location.assign(url);
+    return;
+  }
+  if (name === 'settings') {
+    document.getElementById('touch-settings')?.scrollIntoView({ block: 'center' });
+    return;
+  }
+  if (name === 'exit') {
+    const url = new URL(location.href);
+    url.search = '';
+    location.assign(url);
+    return;
+  }
   if (name === 'respawn') {
     if (playerHealth) playerHealth.respawn();
     else player?.respawn();
@@ -1997,10 +2025,14 @@ function menuAction(name) {
 }
 
 function syncMenuButtons() {
+  const context = document.getElementById('fe-pause-context');
+  if (context) context.textContent = zombiesMode ? `ZOMBIES · ${activeMap.name.toUpperCase()}` : `${gameMode.toUpperCase()} · ${activeMap.name.toUpperCase()}`;
   for (const button of menuButtons) {
     const action = button.dataset.action;
     if (action === 'navmesh') button.dataset.on = String(navigationVisible);
     if (action === 'collision') button.dataset.on = String(collisionVisible);
+    if (action === 'respawn') button.hidden = !zombiesMode;
+    if (action === 'navmesh' || action === 'collision') button.hidden = !automationPaused;
   }
 }
 
