@@ -18,6 +18,10 @@ function include(candidate) {
   const relative = path.relative(source, candidate);
   if (!relative) return true;
   const segments = relative.split(path.sep);
+  // Alcatraz is also registered in hosted-assets.js. Its source GLB contains
+  // one monolithic 101 MiB BIN buffer that cannot be split into Pages assets;
+  // omit only the local copy and let runtimeAssetUrl use the hosted URL.
+  if (relative.endsWith(path.join('alcatraz', 'source', 'ALCATRAZ ISLAND.glb'))) return false;
   if (segments.length === 1 && omittedRootFiles.has(segments[0])) return false;
   if (
     segments.length === 2
