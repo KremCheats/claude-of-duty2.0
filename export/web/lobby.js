@@ -1,14 +1,21 @@
+import { DEFAULT_MAP, MAPS, findMap } from './maps.js';
+import { WEAPONS, weaponsOfClass } from './weapons.js';
+
 const lobby = document.getElementById('merk-lobby');
 if (lobby) {
   const nav = [...lobby.querySelectorAll('[data-lobby-nav]')];
   const views = [...lobby.querySelectorAll('[data-lobby-view]')];
   const storageKey = 'merk-of-duty.ui-settings.v1';
+  const mapKey = 'merk-of-duty.selected-map.v1';
+  const safeStorage = (() => { try { return window.localStorage; } catch { return null; } })();
   let selected = Math.max(0, nav.findIndex((item) => item.dataset.lobbyNav === 'multiplayer'));
   let activeMode = 'TEAM DEATHMATCH';
-  let activeMap = 'NUKETOWN 2020';
+  let activeMapId = new URLSearchParams(location.search).get('map') || safeStorage?.getItem(mapKey) || DEFAULT_MAP;
+  let queueMode = new URLSearchParams(location.search).get('mode') === 'zombies' ? 'zombies' : 'multiplayer';
   let matchTimer;
   let matchStartedAt;
 
+  const mapName = (id) => findMap(id)?.name?.toUpperCase() || 'NUKETOWN 2025';
   const setSelected = (index) => {
     selected = (index + nav.length) % nav.length;
     nav.forEach((item, i) => {
@@ -26,13 +33,17 @@ if (lobby) {
     lobby.querySelectorAll('[data-lobby-mode]').forEach((item) => { item.dataset.active = String(item.dataset.lobbyMode === mode); });
     lobby.querySelectorAll('[data-lobby-current-mode], [data-loading-mode]').forEach((item) => { item.textContent = mode; });
   };
-  const setMap = (map) => {
-    activeMap = map;
-    lobby.querySelectorAll('[data-lobby-map]').forEach((item) => { item.dataset.active = String(item.dataset.lobbyMap === map); });
-    lobby.querySelectorAll('[data-lobby-current-map], [data-loading-map]').forEach((item) => { item.textContent = map; });
+  const setMap = (id) => {
+    const map = findMap(id);
+    if (!map) return;
+    activeMapId = map.id;
+    try { safeStorage?.setItem(mapKey, activeMapId); } catch { /* private browsing */ }
+    lobby.querySelectorAll('[data-lobby-map]').forEach((item) => { item.dataset.active = String(item.dataset.lobbyMap === activeMapId); });
+    lobby.querySelectorAll('[data-lobby-current-map], [data-loading-map]').forEach((item) => { item.textContent = map.name.toUpperCase(); });
   };
   const stopMatchTimer = () => { if (matchTimer) clearInterval(matchTimer); matchTimer = null; };
   const openMatchmaking = () => {
+    if (queueMode !== 'zombies') queueMode = 'multiplayer';
     openView('matchmaking');
     matchStartedAt = performance.now();
     const time = lobby.querySelector('[data-match-time]');
@@ -58,26 +69,60 @@ if (lobby) {
     }, 95);
   };
   const startGame = () => {
+    const expectedMode = queueMode === 'zombies' ? 'zombies' : 'multiplayer';
+    const query = new URLSearchParams(location.search);
+    if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode) {
+      query.set('map', activeMapId);
+      query.set('mode', expectedMode);
+      location.assign(`${location.pathname}?${query.toString()}`);
+      return;
+    }
     lobby.hidden = true;
     if (globalThis.merkGameStarted && typeof globalThis.merkDeployGame === 'function') globalThis.merkDeployGame();
     else if (typeof globalThis.merkStartGame === 'function') globalThis.merkStartGame();
     else window.addEventListener('merk:game-ready', () => globalThis.merkStartGame?.(), { once: true });
   };
   const activate = (name = nav[selected]?.dataset.lobbyNav) => {
-    if (name === 'multiplayer' || name === 'play') openView('multiplayer');
-    else if (name === 'zombies') openView('zombies');
+    if (name === 'multiplayer' || name === 'play') { queueMode = 'multiplayer'; openView('multiplayer'); }
+    else if (name === 'zombies') { queueMode = 'zombies'; openView('zombies'); }
     else if (name === 'loadouts') openView('loadout');
     else if (name === 'campaign') openView('campaign');
     else if (name === 'custom') openView('custom');
     else if (name === 'store') openView('store');
     else if (name === 'options') openView('options');
+    else if (name === 'account') {
+      openView('');
+      const panel = document.getElementById('merk-auth-panel');
+      if (panel) panel.hidden = false;
+    }
   };
   const loadSettings = () => {
-    try { const saved = JSON.parse(localStorage.getItem(storageKey) || '{}'); lobby.querySelectorAll('[data-setting-key]').forEach((input) => { if (saved[input.dataset.settingKey] != null) input.value = saved[input.dataset.settingKey]; }); } catch { /* local settings are optional */ }
+    try { const saved = JSON.parse(safeStorage?.getItem(storageKey) || '{}'); lobby.querySelectorAll('[data-setting-key]').forEach((input) => { if (saved[input.dataset.settingKey] != null) input.value = saved[input.dataset.settingKey]; }); } catch { /* local settings are optional */ }
   };
   const saveSettings = () => {
     const values = Object.fromEntries([...lobby.querySelectorAll('[data-setting-key]')].map((input) => [input.dataset.settingKey, input.value]));
-    try { localStorage.setItem(storageKey, JSON.stringify(values)); } catch { /* private browsing */ }
+    try { safeStorage?.setItem(storageKey, JSON.stringify(values)); } catch { /* private browsing */ }
+  };
+  const renderWeaponRoster = () => {
+    const grid = lobby.querySelector('[data-lobby-weapon-grid]');
+    if (!grid) return;
+    const saved = safeStorage?.getItem('merk-of-duty.loadout-primary.v1') || 'm27';
+    grid.replaceChildren();
+    for (const weapon of Object.values(WEAPONS)) {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'lobby-weapon-card';
+      card.dataset.weaponId = weapon.id;
+      card.dataset.active = String(weapon.id === saved);
+      card.innerHTML = `<strong>${weapon.name}</strong><small>${weapon.role || weapon.class.toUpperCase()}</small><span>${weapon.damage ?? 0} DMG · ${weapon.magazineSize ?? 0} MAG · ${weapon.roundsPerMinute ?? 0} RPM</span>`;
+      card.addEventListener('click', () => {
+        grid.querySelectorAll('[data-weapon-id]').forEach((item) => { item.dataset.active = String(item === card); });
+        try { safeStorage?.setItem('merk-of-duty.loadout-primary.v1', weapon.id); } catch { /* private browsing */ }
+        const current = lobby.querySelector('.lobby-roster-row small');
+        if (current) current.textContent = weapon.name;
+      });
+      grid.appendChild(card);
+    }
   };
   nav.forEach((item, index) => { item.addEventListener('pointerenter', () => setSelected(index)); item.addEventListener('click', () => activate(item.dataset.lobbyNav)); });
   lobby.querySelector('[data-lobby-action="find"]')?.addEventListener('click', () => openView('multiplayer'));
@@ -91,6 +136,11 @@ if (lobby) {
   lobby.querySelectorAll('[data-lobby-map]').forEach((button) => button.addEventListener('click', () => setMap(button.dataset.lobbyMap)));
   lobby.querySelectorAll('[data-setting-tab]').forEach((button) => button.addEventListener('click', () => { lobby.querySelectorAll('[data-setting-tab]').forEach((tab) => { tab.dataset.active = String(tab === button); }); lobby.querySelectorAll('[data-setting-panel]').forEach((panel) => { panel.hidden = panel.dataset.settingPanel !== button.dataset.settingTab; }); }));
   lobby.querySelectorAll('[data-setting-key]').forEach((input) => input.addEventListener('input', () => { const output = lobby.querySelector(`[data-setting-output="${input.dataset.settingKey}"]`); if (output) output.textContent = input.dataset.settingKey === 'fov' ? `${input.value}°` : `${input.value}×`; }));
-  document.addEventListener('keydown', (event) => { if (lobby.hidden) return; if (event.key === 'ArrowRight' && !views.some((view) => !view.hidden && view.dataset.lobbyView === 'map-select')) return; if (event.key === 'ArrowDown') { event.preventDefault(); setSelected(selected + 1); } if (event.key === 'ArrowUp') { event.preventDefault(); setSelected(selected - 1); } if (event.key === 'Enter') { event.preventDefault(); activate(); } if (event.key === 'Escape') { event.preventDefault(); openView(''); } });
-  loadSettings(); setSelected(selected); setMap(activeMap);
+  document.addEventListener('keydown', (event) => { if (lobby.hidden) return; if (event.key === 'ArrowDown') { event.preventDefault(); setSelected(selected + 1); } if (event.key === 'ArrowUp') { event.preventDefault(); setSelected(selected - 1); } if (event.key === 'Enter') { event.preventDefault(); activate(); } if (event.key === 'Escape') { event.preventDefault(); openView(''); } });
+  loadSettings();
+  setSelected(selected);
+  setMap(activeMapId);
+  renderWeaponRoster();
 }
+
+void weaponsOfClass;

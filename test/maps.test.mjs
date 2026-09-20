@@ -14,8 +14,8 @@ function memoryStorage(initial = {}) {
   };
 }
 
-test('Hijacked stays the default and keeps its original file names', () => {
-  assert.equal(DEFAULT_MAP, 'mp_hijacked');
+test('Nuketown is the default and Hijacked keeps its original file names', () => {
+  assert.equal(DEFAULT_MAP, 'mp_nuketown_2020');
   assert.ok(MAP_IDS.includes('mp_hijacked'));
   assert.ok(MAP_IDS.includes('mp_nuketown_2020'));
   const files = mapFiles(MAPS.mp_hijacked);

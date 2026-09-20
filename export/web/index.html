@@ -691,6 +691,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <button type="button" data-lobby-nav="loadouts"><span class="nav-icon">▰</span><span>Loadouts</span></button>
       <button type="button" data-lobby-nav="store"><span class="nav-icon">▾</span><span>Store</span></button>
       <button type="button" data-lobby-nav="options"><span class="nav-icon">⚙</span><span>Options</span></button>
+      <button type="button" data-lobby-nav="account"><span class="nav-icon">◉</span><span>Account / Sign In</span></button>
     </nav>
     <aside class="lobby-right">
       <section class="lobby-panel"><div class="lobby-panel-head"><span>PARTY 1/4</span><span class="lobby-online">ONLINE</span></div><div class="lobby-player"><b class="lobby-level">55</b><img class="lobby-emblem" src="./images/player_emblem_nor.webp" alt="Player emblem"><div class="lobby-username">KREMITYSS<small>PRESTIGE 1</small></div><b class="lobby-crown">♛</b></div><div class="lobby-invite"><b>＋</b><span>INVITE PLAYERS</span><small>0 ONLINE</small></div></section>
@@ -699,9 +700,9 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
     <button class="lobby-find" type="button" data-lobby-action="find"><strong>◎ &nbsp; FIND MATCH</strong><small>QUICK PLAY / PUBLIC MATCH</small></button>
     <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.0.0</span></footer>
   </div>
-  <section class="lobby-view" data-lobby-view="multiplayer" hidden><div class="lobby-dialog"><h2>MULTIPLAYER LOBBY</h2><p><span data-lobby-current-mode>TEAM DEATHMATCH</span> &nbsp; / &nbsp; <span data-lobby-current-map>HIJACKED</span> &nbsp; / &nbsp; PUBLIC MATCH</p><div class="lobby-mode-grid"><button class="lobby-mode" data-lobby-mode="TEAM DEATHMATCH" data-active="true">TEAM DEATHMATCH</button><button class="lobby-mode" data-lobby-mode="SEARCH & DESTROY">SEARCH & DESTROY</button><button class="lobby-mode" data-lobby-mode="HARDPOINT">HARDPOINT</button><button class="lobby-mode" data-lobby-mode="CAPTURE THE FLAG">CAPTURE THE FLAG</button><button class="lobby-mode" data-lobby-mode="FREE FOR ALL">FREE FOR ALL</button></div><h3>MAP SELECT</h3><div class="lobby-map-grid"><button class="lobby-map" data-lobby-map="HIJACKED" data-active="true">HIJACKED<small>Luxury yacht · 8–12 players</small></button><button class="lobby-map" data-lobby-map="NUKETOWN 2020">NUKETOWN 2020<small>Classic test site · 6–12 players</small></button><button class="lobby-map" data-lobby-map="FIRING RANGE">FIRING RANGE<small>Training facility · 6–10 players</small></button></div><div class="lobby-roster"><div class="lobby-roster-row"><span>KREMITYSS</span><small>HOST</small><span>READY</span><span>24ms</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>SEARCHING</small><span>—</span><span>—</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>INVITE</small><span>—</span><span>—</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action secondary" data-lobby-action="map-open">CHANGE MAP</button><button class="lobby-action" data-lobby-action="start">FIND MATCH / START MATCH</button></div></div></section>
-  <section class="lobby-view" data-lobby-view="map-select" hidden><div class="lobby-dialog lobby-dialog-wide"><div class="lobby-dialog-top"><div><h2>MAP SELECT</h2><p>CINEMATIC OPERATIONS // SELECT DEPLOYMENT ZONE</p></div><span class="lobby-screen-hint">← / → SCROLL &nbsp; · &nbsp; ENTER SELECT</span></div><div class="lobby-map-grid lobby-map-grid-wide"><button class="lobby-map" data-lobby-map="NUKETOWN 2020" data-active="true">NUKETOWN 2020<small>Atomic test site · 6–12 players<br>TEAM DEATHMATCH · DOMINATION · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="HIJACKED">HIJACKED<small>Luxury yacht · 6–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · FREE FOR ALL</small></button><button class="lobby-map" data-lobby-map="FIRING RANGE">FIRING RANGE<small>Tactical training grounds · 6–10 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="SUMMIT">SUMMIT<small>High-altitude combat zone · 6–12 players<br>TEAM DEATHMATCH · DOMINATION · HARDPOINT</small></button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="map-confirm">SELECT MAP</button></div></div></section>
-  <section class="lobby-view" data-lobby-view="loadout" hidden><div class="lobby-dialog"><h2>LOADOUT</h2><p>CREATE A CLASS // CURRENTLY EQUIPPED</p><div class="lobby-roster"><div class="lobby-roster-row"><span>PRIMARY</span><small>M27</small><span>ASSAULT RIFLE</span><span>30</span></div><div class="lobby-roster-row"><span>SECONDARY</span><small>FIVESEVEN</small><span>SIDEARM</span><span>20</span></div><div class="lobby-roster-row"><span>PERK 1 / 2 / 3</span><small>LIGHTWEIGHT</small><span>TOUGHNESS / DEXTERITY</span><span>✓</span></div><div class="lobby-roster-row"><span>LETHAL / TACTICAL</span><small>FRAG / FLASH</small><span>WILDCARD: OVERKILL</span><span>✓</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">DEPLOY WITH LOADOUT</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="multiplayer" hidden><div class="lobby-dialog"><h2>MULTIPLAYER LOBBY</h2><p><span data-lobby-current-mode>TEAM DEATHMATCH</span> &nbsp; / &nbsp; <span data-lobby-current-map>NUKETOWN 2025</span> &nbsp; / &nbsp; PUBLIC MATCH</p><div class="lobby-mode-grid"><button class="lobby-mode" data-lobby-mode="TEAM DEATHMATCH" data-active="true">TEAM DEATHMATCH</button><button class="lobby-mode" data-lobby-mode="SEARCH & DESTROY">SEARCH & DESTROY</button><button class="lobby-mode" data-lobby-mode="HARDPOINT">HARDPOINT</button><button class="lobby-mode" data-lobby-mode="CAPTURE THE FLAG">CAPTURE THE FLAG</button><button class="lobby-mode" data-lobby-mode="FREE FOR ALL">FREE FOR ALL</button></div><h3>MAP SELECT</h3><div class="lobby-map-grid"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true">NUKETOWN 2025<small>Atomic test site · 6–12 players</small></button><button class="lobby-map" data-lobby-map="mp_hijacked">HIJACKED<small>Luxury yacht · 8–12 players</small></button><button class="lobby-map" data-lobby-map="firing_range">FIRING RANGE<small>Training facility · 6–10 players</small></button><button class="lobby-map" data-lobby-map="crash">CRASH<small>Desert conflict zone · 6–12 players</small></button></div><div class="lobby-roster"><div class="lobby-roster-row"><span>KREMITYSS</span><small>HOST</small><span>READY</span><span>24ms</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>SEARCHING</small><span>—</span><span>—</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>INVITE</small><span>—</span><span>—</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action secondary" data-lobby-action="map-open">CHANGE MAP</button><button class="lobby-action" data-lobby-action="start">FIND MATCH / START MATCH</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="map-select" hidden><div class="lobby-dialog lobby-dialog-wide"><div class="lobby-dialog-top"><div><h2>MAP SELECT</h2><p>CINEMATIC OPERATIONS // SELECT DEPLOYMENT ZONE</p></div><span class="lobby-screen-hint">← / → SCROLL &nbsp; · &nbsp; ENTER SELECT</span></div><div class="lobby-map-grid lobby-map-grid-wide"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true">NUKETOWN 2025<small>Atomic test site · 6–12 players<br>TEAM DEATHMATCH · DOMINATION · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="mp_hijacked">HIJACKED<small>Luxury yacht · 8–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · FREE FOR ALL</small></button><button class="lobby-map" data-lobby-map="firing_range">FIRING RANGE<small>Tactical training grounds · 6–10 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="crash">CRASH<small>Desert conflict zone · 6–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="map-confirm">SELECT MAP</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="loadout" hidden><div class="lobby-dialog"><h2>LOADOUT</h2><p>CREATE A CLASS // CURRENTLY EQUIPPED</p><div class="lobby-weapon-grid" data-lobby-weapon-grid aria-label="Weapon roster"></div><div class="lobby-roster"><div class="lobby-roster-row"><span>PRIMARY</span><small>M27</small><span>ASSAULT RIFLE</span><span>30</span></div><div class="lobby-roster-row"><span>SECONDARY</span><small>FIVESEVEN</small><span>SIDEARM</span><span>20</span></div><div class="lobby-roster-row"><span>PERK 1 / 2 / 3</span><small>LIGHTWEIGHT</small><span>TOUGHNESS / DEXTERITY</span><span>✓</span></div><div class="lobby-roster-row"><span>LETHAL / TACTICAL</span><small>FRAG / FLASH</small><span>WILDCARD: OVERKILL</span><span>✓</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">DEPLOY WITH LOADOUT</button></div></div></section>
   <section class="lobby-view" data-lobby-view="zombies" hidden><div class="lobby-dialog"><h2>ZOMBIES</h2><p>UNDEAD OPERATIONS // READY ROOM</p><div class="lobby-mode-grid"><button class="lobby-mode" data-active="true">SOLO</button><button class="lobby-mode">CO-OP</button><button class="lobby-mode">MAP SELECT</button><button class="lobby-mode">LOADOUT</button><button class="lobby-mode">READY</button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">START ZOMBIES</button></div></div></section>
   <section class="lobby-view" data-lobby-view="campaign" hidden><div class="lobby-dialog"><h2>CAMPAIGN</h2><p>SOLO OPERATIONS ARE BEING PREPARED.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button></div></div></section>
   <section class="lobby-view" data-lobby-view="custom" hidden><div class="lobby-dialog"><h2>CUSTOM GAMES</h2><p>SET RULES, INVITE YOUR FIRETEAM, AND HOST A PRIVATE MATCH.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">HOST GAME</button></div></div></section>
@@ -2172,6 +2173,25 @@ const ktx2Loader = new KTX2Loader(loadingManager)
   .detectSupport(renderer);
 loader.setKTX2Loader(ktx2Loader);
 loader.setMeshoptDecoder(MeshoptDecoder);
+function applyMapSurfaceTexture(root, url) {
+  if (!root || !url) return;
+  const texture = new THREE.TextureLoader(loadingManager).load(url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(5, 5);
+  root.traverse((object) => {
+    if (!object.isMesh) return;
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    materials.forEach((material) => {
+      if (!material || material.map) return;
+      material.map = texture;
+      material.color?.set(0xffffff);
+      material.needsUpdate = true;
+    });
+  });
+}
+
 function loadGltf(url, label) {
   return loadGltfAsset(loader, url, (event) => progress(label, event)).then((gltf) => {
     // Chrome and bare metal need metalness to reflect the environment; without
@@ -2952,9 +2972,10 @@ async function start() {
       loadWeaponSlot(activeWeaponSlot),
       loadWeaponSlot(weaponSlots.get(loadout.secondary)),
     ]).finally(() => frontend.stage('viewmodel'));
-    const [renderGltf, loadedCollisionWorld, hints, ladders, medalDefs] = await Promise.all([
+    const [renderGltf, loadedCollisionWorld, hints, ladders, medalDefs, zombieTemplate] = await Promise.all([
       loadGltf(activeMapFiles.render, 'map').then((gltf) => {
         // KTX2 texture decoding is complete when GLTFLoader resolves.
+        applyMapSurfaceTexture(gltf.scene, activeMap.surfaceTexture);
         frontend.stage('textures');
         return gltf;
       }),
@@ -2985,6 +3006,10 @@ async function start() {
         console.warn('Medals unavailable:', error);
         return [];
       }),
+      zombiesMode ? loadGltf('characters/zombie_doom_default.glb', 'zombie model').catch((error) => {
+        console.warn('Supplied zombie model unavailable:', error);
+        return null;
+      }) : Promise.resolve(null),
     ]);
     medals = new MedalTracker({ defs: medalDefs });
     // Tagged before batching so the parts stay their own meshes.
@@ -3067,7 +3092,7 @@ async function start() {
     });
 
     navigation = await navPromise;
-    if (zombiesMode) zombies = new ZombieManager({scene, player, playerHealth, navigation, hints: { ...hints, mysteryBoxPositions: activeMap.zombies?.mysteryBoxPositions, spawns: activeMap.zombies?.spawnPositions ?? hints?.spawns }, config: { ...ZOMBIES_CONFIG, ...(activeMap.zombies ?? {}) },
+    if (zombiesMode) zombies = new ZombieManager({scene, player, playerHealth, navigation, zombieTemplate: zombieTemplate?.scene ?? null, hints: { ...hints, mysteryBoxPositions: activeMap.zombies?.mysteryBoxPositions, spawns: activeMap.zombies?.spawnPositions ?? hints?.spawns }, config: { ...ZOMBIES_CONFIG, ...(activeMap.zombies ?? {}) },
       onBoxReward: (result) => {
         const slot = weaponSlots.get(result.weaponId);
         if (slot) {

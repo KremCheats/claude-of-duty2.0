@@ -88,8 +88,8 @@
 .lobby-map-grid-wide .lobby-map { min-height: 230px; display:flex; flex-direction:column; justify-content:end; background:linear-gradient(0deg,rgba(1,4,6,.95),rgba(1,4,6,.05)), linear-gradient(135deg,#40534c,#111a21); }
 .lobby-map-grid-wide .lobby-map:nth-child(1) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.05)),url('./images/merk-lobby-background.webp') center/cover; }
 .lobby-map-grid-wide .lobby-map:nth-child(2) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#344753,#19252c); }
-.lobby-map-grid-wide .lobby-map:nth-child(3) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#465744,#19211e); }
-.lobby-map-grid-wide .lobby-map:nth-child(4) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#50647d,#1a2029); }
+ .lobby-map-grid-wide .lobby-map:nth-child(3) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),url('./ui/menu_mp_map_select_firing_range.png') center/cover; }
+ .lobby-map-grid-wide .lobby-map:nth-child(4) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),url('./ui/menu_mp_map_select_crash.png') center/cover; }
 .lobby-map-grid-wide .lobby-map small { line-height:1.45; }
 .lobby-settings-layout { display:grid; grid-template-columns:190px 1fr; gap:18px; min-height:330px; }
 .lobby-settings-tabs { display:grid; align-content:start; gap:2px; }
@@ -135,3 +135,6 @@
 @media(max-width:680px) { .lobby-dialog-top { align-items:start; flex-direction:column; gap:8px; } .lobby-map-grid-wide { grid-template-columns:repeat(2,1fr); } .lobby-map-grid-wide .lobby-map { min-height:155px; } .lobby-settings-layout { grid-template-columns:1fr; } .lobby-settings-tabs { grid-template-columns:repeat(3,1fr); } .lobby-setting-tab { padding:10px 8px; font-size:12px; } .lobby-settings-panel > div { grid-template-columns:1fr; } .lobby-match-grid { grid-template-columns:repeat(2,1fr); } .lobby-match-grid > div:nth-child(odd) { border-bottom:1px solid var(--lobby-line); } }
 
 .scoreboard-mode { color: var(--lobby-orange-bright); font-size:.65em; letter-spacing:.08em; }
+
+/* Real weapon roster: compact, touch-safe, and consistent with the lobby panels. */
+.lobby-weapon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:34vh;overflow:auto;margin:14px 0;padding-right:3px}.lobby-weapon-card{display:grid;gap:4px;min-height:70px;padding:11px;text-align:left;background:linear-gradient(135deg,rgba(18,33,41,.96),rgba(7,14,19,.96));border:1px solid rgba(165,191,205,.2);color:#d9e6ea;font:inherit;cursor:pointer;transition:border-color .18s,transform .18s,background .18s}.lobby-weapon-card:hover,.lobby-weapon-card[data-active="true"]{border-color:#ff6422;background:linear-gradient(135deg,rgba(84,39,25,.9),rgba(20,19,20,.96));transform:translateY(-1px)}.lobby-weapon-card strong{font-size:12px;letter-spacing:.08em}.lobby-weapon-card small,.lobby-weapon-card span{color:#8da1ab;font-size:9px;letter-spacing:.08em}.lobby-weapon-card span{color:#ffb48d;font-size:8px}@media(max-width:560px){.lobby-weapon-grid{grid-template-columns:1fr;max-height:38vh}.lobby-weapon-card{min-height:62px}}
