@@ -901,6 +901,7 @@ import {
 import { WEAPON_CAMO_IDS, randomPick } from './skins.js';
 import { GrenadeManager, throwOrigin, throwVelocity } from './grenades.js';
 import { animateWater } from './lighting.js';
+import { RealtimeMatchClient } from './realtime-client.js';
 
 // Standard modes rotate maps automatically. Custom mode is the one exception:
 // it honors ?map= and the remembered selection so players can practice a
@@ -909,14 +910,37 @@ const mapStorage = (() => { try { return window.localStorage; } catch { return n
 const mapParams = new URLSearchParams(location.search);
 const gameMode = mapParams.get('mode') ?? 'multiplayer';
 const customMode = gameMode === 'custom';
+function nextFairMapId(storage) {
+  const key = `merk-map-bag:${gameMode}`;
+  let bag = [];
+  try { bag = JSON.parse(storage?.getItem(key) || '[]'); } catch { bag = []; }
+  const valid = new Set(MAP_IDS);
+  bag = Array.isArray(bag) ? bag.filter((id) => valid.has(id)) : [];
+  if (!bag.length) {
+    bag = [...MAP_IDS];
+    for (let i = bag.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+  }
+  const id = bag.shift();
+  try { storage?.setItem(key, JSON.stringify(bag)); } catch {}
+  return id;
+}
 const selectedMapId = customMode
   ? resolveMapId({ search: location.search, storage: mapStorage })
-  : MAP_IDS[Math.floor(Math.random() * MAP_IDS.length)];
+  : nextFairMapId(mapStorage);
 const activeMap = MAPS[selectedMapId] ?? MAPS[MAP_IDS[0]];
 const zombiesMode = gameMode === 'zombies';
 const activeMapFiles = mapFiles(activeMap);
 rememberMap(mapStorage, activeMap.id);
 const scene = new THREE.Scene();
+let realtimeMatch = null;
+if (['normal', 'ranked'].includes(gameMode)) {
+  realtimeMatch = new RealtimeMatchClient({
+    scene,
+    mode: gameMode,
+    onStatus: (status) => { if (matchStatus) matchStatus.textContent = status; },
+  });
+  realtimeMatch.connect();
+}
 const zombiesAtmosphere = activeMap.zombies?.atmosphere ?? { background: 0x09070a, fog: 0x120b10, near: 220, far: 1550 };
 scene.background = new THREE.Color(zombiesMode ? zombiesAtmosphere.background : 0x87a8c8);
 scene.fog = new THREE.Fog(zombiesMode ? zombiesAtmosphere.fog : 0x87a8c8, zombiesMode ? zombiesAtmosphere.near : HAZE.near, zombiesMode ? zombiesAtmosphere.far : HAZE.far);
@@ -3208,6 +3232,7 @@ function tick() {
     player.update(dt, controlsActive ? { ...movement, sprint: sprintState.sprinting } : {});
     if (player && !viewmodel.scoped && camera.isPerspectiveCamera) { const targetFov = SCOPE.hipFov + (player.state.cameraFovOffset || 0); if (Math.abs(camera.fov-targetFov)>0.01) { camera.fov += (targetFov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix(); } }
   }
+  realtimeMatch?.update(dt, player, camera);
   if (simulationActive && enemySimulationActive) navigation?.update(1 / 60, dt, 5);
   enemies?.update(dt, { active: simulationActive && enemySimulationActive });
   if (zombiesMode && simulationActive) zombies?.update(dt);

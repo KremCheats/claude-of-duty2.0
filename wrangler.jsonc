@@ -9,5 +9,10 @@
       "database_name": "merk-of-duty",
       "database_id": "92e3fdaa-13e7-49cf-afb2-b35e45393eee"
     }
-  ]
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "MATCH_ROOM", "class_name": "MatchRoom", "script_name": "merk-of-duty-match" }
+    ]
+  }
 }

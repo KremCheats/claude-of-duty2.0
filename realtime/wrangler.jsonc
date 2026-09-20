@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "merk-of-duty-match",
+  "main": "./worker.js",
+  "compatibility_date": "2026-09-20",
+  "durable_objects": {
+    "bindings": [
+      { "name": "MATCH_ROOM", "class_name": "MatchRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["MatchRoom"] }
+  ]
+}
