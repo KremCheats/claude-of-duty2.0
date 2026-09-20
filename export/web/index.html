@@ -675,8 +675,38 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
   "@recast-navigation/three": "https://cdn.jsdelivr.net/npm/@recast-navigation/three@0.43.1/dist/index.mjs"
 } }
 </script>
+  <link rel="stylesheet" href="./lobby.css">
 </head>
 <body>
+<div id="merk-lobby" aria-label="Merk Of Duty Remastered main lobby">
+  <div class="lobby-particles"></div>
+  <div class="lobby-shell">
+    <header class="lobby-brand"><h1>MERK OF DUTY<span>REMASTERED</span></h1></header>
+    <nav class="lobby-nav" aria-label="Main menu">
+      <button type="button" data-lobby-nav="play"><span class="nav-icon">▶</span><span>Play</span></button>
+      <button type="button" data-lobby-nav="multiplayer"><span class="nav-icon">♟</span><span>Multiplayer</span></button>
+      <button type="button" data-lobby-nav="zombies"><span class="nav-icon">☠</span><span>Zombies</span></button>
+      <button type="button" data-lobby-nav="campaign"><span class="nav-icon">◎</span><span>Campaign</span></button>
+      <button type="button" data-lobby-nav="custom"><span class="nav-icon">⚒</span><span>Custom Games</span></button>
+      <button type="button" data-lobby-nav="loadouts"><span class="nav-icon">▰</span><span>Loadouts</span></button>
+      <button type="button" data-lobby-nav="store"><span class="nav-icon">▾</span><span>Store</span></button>
+      <button type="button" data-lobby-nav="options"><span class="nav-icon">⚙</span><span>Options</span></button>
+    </nav>
+    <aside class="lobby-right">
+      <section class="lobby-panel"><div class="lobby-panel-head"><span>PARTY 1/4</span><span class="lobby-online">ONLINE</span></div><div class="lobby-player"><b class="lobby-level">55</b><img class="lobby-emblem" src="./images/player_emblem_nor.webp" alt="Player emblem"><div class="lobby-username">KREMITYSS<small>PRESTIGE 1</small></div><b class="lobby-crown">♛</b></div><div class="lobby-invite"><b>＋</b><span>INVITE PLAYERS</span><small>0 ONLINE</small></div></section>
+      <section class="lobby-panel"><div class="lobby-stats-art"><div><b>LEVEL 55</b><small>PRESTIGE 1</small></div><strong>✠</strong></div><div class="lobby-stat-grid"><div class="lobby-stat"><small>W/L RATIO</small><strong>1.32</strong></div><div class="lobby-stat"><small>K/D RATIO</small><strong>1.48</strong></div><div class="lobby-stat"><small>SCORE PER MIN</small><strong>462</strong></div></div></section>
+    </aside>
+    <button class="lobby-find" type="button" data-lobby-action="find"><strong>◎ &nbsp; FIND MATCH</strong><small>QUICK PLAY / PUBLIC MATCH</small></button>
+    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.0.0</span></footer>
+  </div>
+  <section class="lobby-view" data-lobby-view="multiplayer" hidden><div class="lobby-dialog"><h2>MULTIPLAYER LOBBY</h2><p><span data-lobby-current-mode>TEAM DEATHMATCH</span> &nbsp; / &nbsp; <span data-lobby-current-map>HIJACKED</span> &nbsp; / &nbsp; PUBLIC MATCH</p><div class="lobby-mode-grid"><button class="lobby-mode" data-lobby-mode="TEAM DEATHMATCH" data-active="true">TEAM DEATHMATCH</button><button class="lobby-mode" data-lobby-mode="SEARCH & DESTROY">SEARCH & DESTROY</button><button class="lobby-mode" data-lobby-mode="HARDPOINT">HARDPOINT</button><button class="lobby-mode" data-lobby-mode="CAPTURE THE FLAG">CAPTURE THE FLAG</button><button class="lobby-mode" data-lobby-mode="FREE FOR ALL">FREE FOR ALL</button></div><h3>MAP SELECT</h3><div class="lobby-map-grid"><button class="lobby-map" data-lobby-map="HIJACKED" data-active="true">HIJACKED<small>Luxury yacht · 8–12 players</small></button><button class="lobby-map" data-lobby-map="NUKETOWN 2020">NUKETOWN 2020<small>Classic test site · 6–12 players</small></button><button class="lobby-map" data-lobby-map="FIRING RANGE">FIRING RANGE<small>Training facility · 6–10 players</small></button></div><div class="lobby-roster"><div class="lobby-roster-row"><span>KREMITYSS</span><small>HOST</small><span>READY</span><span>24ms</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>SEARCHING</small><span>—</span><span>—</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>INVITE</small><span>—</span><span>—</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">FIND MATCH / START MATCH</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="loadout" hidden><div class="lobby-dialog"><h2>LOADOUT</h2><p>CREATE A CLASS // CURRENTLY EQUIPPED</p><div class="lobby-roster"><div class="lobby-roster-row"><span>PRIMARY</span><small>M27</small><span>ASSAULT RIFLE</span><span>30</span></div><div class="lobby-roster-row"><span>SECONDARY</span><small>FIVESEVEN</small><span>SIDEARM</span><span>20</span></div><div class="lobby-roster-row"><span>PERK 1 / 2 / 3</span><small>LIGHTWEIGHT</small><span>TOUGHNESS / DEXTERITY</span><span>✓</span></div><div class="lobby-roster-row"><span>LETHAL / TACTICAL</span><small>FRAG / FLASH</small><span>WILDCARD: OVERKILL</span><span>✓</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">DEPLOY WITH LOADOUT</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="zombies" hidden><div class="lobby-dialog"><h2>ZOMBIES</h2><p>UNDEAD OPERATIONS // READY ROOM</p><div class="lobby-mode-grid"><button class="lobby-mode" data-active="true">SOLO</button><button class="lobby-mode">CO-OP</button><button class="lobby-mode">MAP SELECT</button><button class="lobby-mode">LOADOUT</button><button class="lobby-mode">READY</button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">START ZOMBIES</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="campaign" hidden><div class="lobby-dialog"><h2>CAMPAIGN</h2><p>SOLO OPERATIONS ARE BEING PREPARED.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="custom" hidden><div class="lobby-dialog"><h2>CUSTOM GAMES</h2><p>SET RULES, INVITE YOUR FIRETEAM, AND HOST A PRIVATE MATCH.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">HOST GAME</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="store" hidden><div class="lobby-dialog"><h2>STORE</h2><p>OPERATIVE CONTENT // COMING SOON.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="options" hidden><div class="lobby-dialog"><h2>OPTIONS</h2><p>DISPLAY, CONTROL, AUDIO, AND CUSTOM HUD SETTINGS ARE AVAILABLE IN THE PAUSE MENU.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button></div></div></section>
+</div>
 <div id="blocker" data-screen="welcome">
   <div class="fe-layer fe-backdrop"></div>
   <div class="fe-layer fe-fog"></div>
@@ -846,7 +876,10 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
 // may be no second gesture, so an early tap must not disappear during startup.
 globalThis.hijackedStartup = new Promise((resolve) => {
   const events = ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart', 'click'];
-  function requestLoad() {
+  function requestLoad(event) {
+    const lobbyTarget = event?.target?.closest?.('#merk-lobby');
+    const deployTarget = lobbyTarget?.closest?.('[data-lobby-action=\"start\"]');
+    if (lobbyTarget && !deployTarget) return;
     for (const type of events) removeEventListener(type, requestLoad, true);
     const shell = document.getElementById('blocker');
     shell.dataset.screen = 'loading';
@@ -3477,9 +3510,17 @@ function renderFrame() {
 //
 // The welcome screen asks for input, and the early script above remembers it
 // even while modules are still downloading. Resolve once across all input types.
-globalThis.hijackedStartup.then(() => {
+globalThis.merkGameStarted = false;
+globalThis.merkStartGame = () => {
+  if (globalThis.merkGameStarted) return;
+  globalThis.merkGameStarted = true;
+  document.getElementById('merk-lobby')?.setAttribute('hidden', '');
   frontend.startLoading();
-  start();
+  void start();
+  dispatchEvent(new Event('merk:game-ready'));
+};
+globalThis.hijackedStartup.then(() => {
+  if (!globalThis.merkGameStarted) globalThis.merkStartGame();
 });
 tick();
 
@@ -3495,5 +3536,6 @@ addEventListener('resize', () => {
 <script type="module" src="./merk-shell.js"></script>
 <script type="module" src="./normal-modes.js"></script>
 <script type="module" src="./ranked-ui.js"></script>
+<script type="module" src="./lobby.js"></script>
 </body>
 </html>
