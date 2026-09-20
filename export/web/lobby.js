@@ -19,7 +19,8 @@ if (lobby) {
   };
   const startGame = () => {
     lobby.hidden = true;
-    if (typeof globalThis.merkStartGame === 'function') globalThis.merkStartGame();
+    if (globalThis.merkGameStarted && typeof globalThis.merkDeployGame === 'function') globalThis.merkDeployGame();
+    else if (typeof globalThis.merkStartGame === 'function') globalThis.merkStartGame();
     else window.addEventListener('merk:game-ready', () => globalThis.merkStartGame?.(), { once: true });
   };
   const activate = (name = nav[selected]?.dataset.lobbyNav) => {
