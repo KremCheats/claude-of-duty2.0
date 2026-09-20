@@ -79,3 +79,59 @@
 
 /* The remastered lobby is the only title/menu surface. */
 #blocker[data-screen="welcome"], #blocker[data-screen="title"], #merk-hub { display: none !important; }
+
+/* Shared screen system: every menu uses the same panels, typography, and orange state language. */
+.lobby-dialog-wide { width: min(1160px, 100%); }
+.lobby-dialog-top { display:flex; justify-content:space-between; align-items:end; gap:24px; }
+.lobby-screen-hint, .lobby-kicker { color: var(--lobby-orange-bright); font-size:11px; letter-spacing:.16em; text-transform:uppercase; }
+.lobby-map-grid-wide { grid-template-columns: repeat(4, 1fr); }
+.lobby-map-grid-wide .lobby-map { min-height: 230px; display:flex; flex-direction:column; justify-content:end; background:linear-gradient(0deg,rgba(1,4,6,.95),rgba(1,4,6,.05)), linear-gradient(135deg,#40534c,#111a21); }
+.lobby-map-grid-wide .lobby-map:nth-child(1) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.05)),url('./images/merk-lobby-background.webp') center/cover; }
+.lobby-map-grid-wide .lobby-map:nth-child(2) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#344753,#19252c); }
+.lobby-map-grid-wide .lobby-map:nth-child(3) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#465744,#19211e); }
+.lobby-map-grid-wide .lobby-map:nth-child(4) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#50647d,#1a2029); }
+.lobby-map-grid-wide .lobby-map small { line-height:1.45; }
+.lobby-settings-layout { display:grid; grid-template-columns:190px 1fr; gap:18px; min-height:330px; }
+.lobby-settings-tabs { display:grid; align-content:start; gap:2px; }
+.lobby-setting-tab { padding:14px 12px; border:0; border-left:3px solid transparent; color:#acb8ba; background:rgba(255,255,255,.035); font:600 14px 'Barlow Condensed'; letter-spacing:.1em; text-align:left; cursor:pointer; }
+.lobby-setting-tab[data-active='true'], .lobby-setting-tab:hover { color:#fff; border-left-color:var(--lobby-orange); background:linear-gradient(90deg,rgba(255,105,30,.4),transparent); }
+.lobby-settings-panel { padding:18px 22px; border:1px solid var(--lobby-line); background:rgba(255,255,255,.025); }
+.lobby-settings-panel > div { display:grid; grid-template-columns:1fr 1fr; align-content:start; gap:15px 30px; }
+.lobby-settings-panel label { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; color:#b6c0c1; font-size:12px; letter-spacing:.1em; }
+.lobby-settings-panel input, .lobby-settings-panel select { grid-column:2; min-width:150px; color:#eaf0ef; accent-color:var(--lobby-orange); background:#0b151b; border:1px solid var(--lobby-line); padding:8px; font:12px 'Barlow Condensed'; }
+.lobby-settings-panel input[type='range'] { padding:0; }
+.lobby-settings-panel output { grid-column:2; color:var(--lobby-orange-bright); font-size:12px; text-align:right; }
+.lobby-setting-note { grid-column:1/-1; color:#879497; font-size:13px; line-height:1.4; }
+.lobby-matchmaking { text-align:center; }
+.lobby-matchmaking h2 { margin-top:12px; }
+.lobby-radar { position:relative; display:grid; place-items:center; width:150px; height:150px; margin:20px auto; border:1px solid rgba(255,118,38,.65); border-radius:50%; background:radial-gradient(circle,rgba(255,110,30,.15),transparent 67%),repeating-radial-gradient(circle,transparent 0 28px,rgba(255,118,38,.17) 29px 30px); overflow:hidden; color:var(--lobby-orange-bright); letter-spacing:.14em; }
+.lobby-radar::before { content:''; position:absolute; inset:0; background:linear-gradient(45deg,transparent 48%,rgba(255,150,76,.7) 50%,transparent 52%); transform-origin:center; animation:lobby-radar 2.2s linear infinite; }
+.lobby-radar i { position:absolute; width:6px; height:6px; border-radius:50%; background:var(--lobby-orange-bright); box-shadow:0 0 13px var(--lobby-orange); top:36px; right:39px; }
+@keyframes lobby-radar { to { transform:rotate(360deg); } }
+.lobby-match-grid { display:grid; grid-template-columns:repeat(5,1fr); border-top:1px solid var(--lobby-line); border-bottom:1px solid var(--lobby-line); }
+.lobby-match-grid > div { padding:14px 8px; border-right:1px solid var(--lobby-line); }
+.lobby-match-grid > div:last-child { border:0; }
+.lobby-match-grid small { display:block; color:#8e9b9d; font-size:10px; letter-spacing:.1em; }
+.lobby-match-grid strong { display:block; margin-top:5px; color:#fff; font-size:18px; letter-spacing:.08em; }
+#merk-loading-screen { position:fixed; inset:0; z-index:120; display:grid; place-items:center; overflow:hidden; color:#eaf0ef; background:#04080b; }
+#merk-loading-screen[hidden] { display:none; }
+.lobby-loading-bg { position:absolute; inset:0; background:linear-gradient(90deg,rgba(2,5,8,.95),rgba(2,5,8,.4),rgba(2,5,8,.86)),url('./images/merk-lobby-background.webp') center/cover; filter:brightness(.65); animation:lobby-loading-pan 14s ease-in-out infinite alternate; }
+@keyframes lobby-loading-pan { to { transform:scale(1.06) translateX(-1%); } }
+.lobby-loading-content { position:relative; width:min(600px,82vw); padding:30px; border-left:3px solid var(--lobby-orange); background:rgba(4,9,13,.74); box-shadow:0 0 40px #000; }
+.lobby-loading-content h2 { margin:12px 0 6px; font-size:clamp(28px,5vw,52px); letter-spacing:.09em; }
+.lobby-loading-content p { margin:0 0 28px; color:#b0bbbc; letter-spacing:.14em; }
+.lobby-loading-content p b { color:var(--lobby-orange-bright); }
+.lobby-loading-track { height:4px; background:rgba(255,255,255,.15); }
+.lobby-loading-track i { display:block; width:0; height:100%; background:var(--lobby-orange); box-shadow:0 0 13px var(--lobby-orange); transition:width .2s linear; }
+.lobby-loading-content strong { display:block; margin-top:12px; color:#d7e0df; font-size:12px; letter-spacing:.16em; }
+.lobby-loading-content small { display:block; margin-top:38px; color:#91a0a2; font-size:12px; letter-spacing:.08em; }
+/* Existing gameplay overlays inherit the lobby system instead of the legacy green chrome. */
+#scoreboard { background:rgba(1,5,8,.76); backdrop-filter:blur(5px); }
+.scoreboard-panel { width:min(950px,92vw); background:rgba(4,10,14,.94); border:1px solid rgba(255,118,38,.5); border-top:3px solid var(--lobby-orange); box-shadow:0 20px 70px #000; }
+.scoreboard-panel h2, .scoreboard-panel p { letter-spacing:.14em; }
+.scoreboard-row { grid-template-columns:44px 1fr 90px 80px 80px; min-height:34px; align-items:center; }
+.scoreboard-row.player { color:var(--lobby-orange-bright); background:rgba(255,110,30,.12); border-left:3px solid var(--lobby-orange); }
+#death-card { border-color:rgba(255,96,54,.7); background:rgba(9,5,6,.82); box-shadow:0 0 30px rgba(255,60,30,.22); }
+@media(max-width:680px) { .lobby-dialog-top { align-items:start; flex-direction:column; gap:8px; } .lobby-map-grid-wide { grid-template-columns:repeat(2,1fr); } .lobby-map-grid-wide .lobby-map { min-height:155px; } .lobby-settings-layout { grid-template-columns:1fr; } .lobby-settings-tabs { grid-template-columns:repeat(3,1fr); } .lobby-setting-tab { padding:10px 8px; font-size:12px; } .lobby-settings-panel > div { grid-template-columns:1fr; } .lobby-match-grid { grid-template-columns:repeat(2,1fr); } .lobby-match-grid > div:nth-child(odd) { border-bottom:1px solid var(--lobby-line); } }
+
+.scoreboard-mode { color: var(--lobby-orange-bright); font-size:.65em; letter-spacing:.08em; }
