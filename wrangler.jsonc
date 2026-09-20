@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "merk-of-duty",
+  "account_id": "4849dbcd8936affb36d171c65063d746",
   "compatibility_date": "2026-09-02",
   "pages_build_output_dir": "./.work/cloudflare-pages",
   "d1_databases": [
@@ -9,10 +10,5 @@
       "database_name": "merk-of-duty",
       "database_id": "92e3fdaa-13e7-49cf-afb2-b35e45393eee"
     }
-  ],
-  "durable_objects": {
-    "bindings": [
-      { "name": "MATCH_ROOM", "class_name": "MatchRoom", "script_name": "merk-of-duty-match" }
-    ]
-  }
+  ]
 }
