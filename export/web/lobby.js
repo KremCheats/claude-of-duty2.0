@@ -1,5 +1,5 @@
-import { DEFAULT_MAP, MAPS, findMap } from './maps.js';
-import { WEAPONS, weaponsOfClass } from './weapons.js';
+import { MAPS, findMap, randomBakedMapId } from './maps.js';
+import { WEAPONS } from './weapons.js';
 
 const lobby = document.getElementById('merk-lobby');
 if (lobby) {
@@ -10,7 +10,8 @@ if (lobby) {
   const safeStorage = (() => { try { return window.localStorage; } catch { return null; } })();
   let selected = Math.max(0, nav.findIndex((item) => item.dataset.lobbyNav === 'multiplayer'));
   let activeMode = 'TEAM DEATHMATCH';
-  let activeMapId = new URLSearchParams(location.search).get('map') || safeStorage?.getItem(mapKey) || DEFAULT_MAP;
+  const queryMap = new URLSearchParams(location.search).get('map');
+  let activeMapId = queryMap || safeStorage?.getItem(mapKey) || randomBakedMapId();
   let queueMode = new URLSearchParams(location.search).get('mode') === 'zombies' ? 'zombies' : 'multiplayer';
   let matchTimer;
   let matchStartedAt;
@@ -74,6 +75,7 @@ if (lobby) {
     if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode) {
       query.set('map', activeMapId);
       query.set('mode', expectedMode);
+      query.set('autostart', '1');
       location.assign(`${location.pathname}?${query.toString()}`);
       return;
     }
@@ -142,5 +144,3 @@ if (lobby) {
   setMap(activeMapId);
   renderWeaponRoster();
 }
-
-void weaponsOfClass;

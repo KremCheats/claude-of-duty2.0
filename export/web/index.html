@@ -789,7 +789,6 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
 
 <section class="lobby-view" data-lobby-view="matchmaking" hidden><div class="lobby-dialog lobby-matchmaking"><span class="lobby-kicker">MERK NETWORK // MATCHMAKING</span><h2>SEARCHING FOR MATCH</h2><div class="lobby-radar"><i></i><b>SCAN</b></div><div class="lobby-match-grid"><div><small>SEARCH TIME</small><strong data-match-time>00:00</strong></div><div><small>PLAYERS FOUND</small><strong>1 / 12</strong></div><div><small>PING</small><strong>24ms</strong></div><div><small>MODE</small><strong data-lobby-current-mode>TEAM DEATHMATCH</strong></div><div><small>MAP</small><strong data-lobby-current-map>NUKETOWN 2020</strong></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="cancel-match">CANCEL SEARCH</button></div></div></section>
 <div id="merk-loading-screen" hidden aria-label="Loading match"><div class="lobby-loading-bg"></div><div class="lobby-loading-content"><span class="lobby-kicker">MERK OF DUTY // REMASTERED</span><h2>LOADING OPERATIONS</h2><p><b data-loading-map>NUKETOWN 2020</b> &nbsp; / &nbsp; <span data-loading-mode>TEAM DEATHMATCH</span></p><div class="lobby-loading-track"><i data-loading-progress></i></div><strong data-loading-copy>CONNECTING TO TACTICAL NETWORK</strong><small data-loading-tip>TIP: Check corners before crossing an open lane.</small></div></div>
-<div id="merk-hub" hidden aria-hidden="true"></div>
 <div id="merk-loading" hidden aria-label="Loading Merk Of Duty"><div class="merk-loading-shade"></div><div class="merk-loading-content"><span class="merk-kicker">MERK OF DUTY // INITIALIZING</span><strong>LOADING OPERATIONS</strong><div class="merk-loading-track"><i id="merk-loading-bar"></i></div><div><span id="merk-loading-caption">CONNECTING TO TACTICAL NETWORK</span><b id="merk-loading-percent">0%</b></div></div></div>
 <div id="merk-hud-editor" class="merk-hud-editor" hidden><div class="merk-hud-editor-card"><div class="merk-drawer-head"><b>CUSTOM HUD EDITOR</b><button id="merk-hud-editor-close" class="merk-icon-btn">×</button></div><p>Enable edit mode, then drag any control directly on the gameplay screen. Positions save to your operative profile.</p><div class="merk-hud-control-list"><button data-hud-edit="fire">FIRE / SHOOT</button><button data-hud-edit="aim">AIM</button><button data-hud-edit="crouch">CROUCH</button><button data-hud-edit="slide">SLIDE</button><button data-hud-edit="prone">PRONE</button><button data-hud-edit="jump">JUMP</button><button data-hud-edit="reload">RELOAD</button><button data-hud-edit="move">MOVE STICK</button></div><div class="merk-auth-actions"><button class="merk-primary" id="merk-hud-editor-save">SAVE HUD</button><button class="merk-secondary" id="merk-hud-editor-reset">RESET HUD</button></div></div></div><div id="merk-results" class="merk-results" hidden><div class="merk-results-card"><span class="merk-kicker">RANKED MATCH COMPLETE</span><h2 id="merk-result-outcome">VICTORY</h2><div class="merk-result-rp" id="merk-result-rp">+28 RP</div><div class="merk-result-progress"><i id="merk-result-progress-bar"></i></div><p id="merk-result-rank">PRO IV · 742 / 800 RP</p><div class="merk-result-grid"><div><small>KILLS</small><strong id="merk-result-kills">18</strong></div><div><small>DEATHS</small><strong id="merk-result-deaths">7</strong></div><div><small>ASSISTS</small><strong id="merk-result-assists">5</strong></div><div><small>OBJECTIVE</small><strong id="merk-result-objective">1,240</strong></div><div><small>PERFORMANCE</small><strong id="merk-result-performance">86</strong></div><div><small>XP EARNED</small><strong id="merk-result-xp">420 XP</strong></div></div><button class="merk-primary" id="merk-results-close">CONTINUE</button></div></div><div id="hud">loading…</div>
 <div id="hud-minimap"></div>
@@ -919,9 +918,10 @@ import { GrenadeManager, throwOrigin, throwVelocity } from './grenades.js';
 import { animateWater } from './lighting.js';
 import { RealtimeMatchClient } from './realtime-client.js';
 
-// Standard modes rotate maps automatically. Custom mode is the one exception:
-// it honors ?map= and the remembered selection so players can practice a
-// specific map. Reading localStorage throws in a sandboxed frame, hence guard.
+// Standard modes rotate maps automatically when no map is specified. An
+// explicit ?map= always wins so the lobby picker and shared links can launch a
+// specific operation; custom mode also honors the remembered selection.
+// Reading localStorage throws in a sandboxed frame, hence guard.
 const mapStorage = (() => { try { return window.localStorage; } catch { return null; } })();
 const mapParams = new URLSearchParams(location.search);
 const gameMode = mapParams.get('mode') ?? 'multiplayer';
@@ -940,9 +940,9 @@ function nextFairMapId(storage) {
   try { storage?.setItem(key, JSON.stringify(bag)); } catch {}
   return id;
 }
-const selectedMapId = customMode
+const selectedMapId = mapParams.has('map')
   ? resolveMapId({ search: location.search, storage: mapStorage })
-  : nextFairMapId(mapStorage);
+  : (customMode ? resolveMapId({ search: location.search, storage: mapStorage }) : nextFairMapId(mapStorage));
 const activeMap = MAPS[selectedMapId] ?? MAPS[MAP_IDS[0]];
 const zombiesMode = gameMode === 'zombies';
 const activeMapFiles = mapFiles(activeMap);
@@ -1298,6 +1298,8 @@ for (const id of MAP_IDS) {
   art.alt = map.name;
   art.width = 256;
   art.height = 128;
+  art.loading = 'lazy';
+  art.decoding = 'async';
   // A map whose bake has not landed stays visible but cannot be picked, and
   // nothing is fetched for it: a probe would be a 404 on every title screen.
   // A baked map whose title card is not exported yet shows its name instead.
@@ -1343,6 +1345,8 @@ function buildClassCard(entry) {
   const art = document.createElement('span');
   art.className = 'fe-class-art';
   const image = document.createElement('img');
+  image.loading = 'lazy';
+  image.decoding = 'async';
   if (entry.cardArt) {
     image.src = entry.cardArt;
     image.alt = entry.name;
@@ -1785,17 +1789,30 @@ function loadWeaponSlot(slot) {
   const { definition, viewmodel: slotViewmodel } = slot;
   slot.loading = (async () => {
     try {
-      await slotViewmodel.load(
-        VIEWMODEL_HANDS,
-        runtimeAssetUrl({ ballista: 'ballista_r2', dsr50: 'dsr50_r2', sa58: 'fal_osw_r2' }[definition.id]) ?? definition.viewmodelUrl,
-        definition.magazineUrl,
-        (label, event) => progress(label, event),
-        {
-          magazineOffset: definition.magazineOffset,
-          magazineRotation: definition.magazineRotation,
-          hiddenTags: definition.hiddenTags,
-        },
-      );
+      const hosted = runtimeAssetUrl({ ballista: 'ballista_r2', dsr50: 'dsr50_r2', sa58: 'fal_osw_r2' }[definition.id]);
+      const sources = [...new Set([hosted, definition.viewmodelUrl].filter(Boolean))];
+      let loaded = false;
+      let lastError;
+      for (const source of sources) {
+        try {
+          await slotViewmodel.load(
+            VIEWMODEL_HANDS,
+            source,
+            definition.magazineUrl,
+            (label, event) => progress(label, event),
+            {
+              magazineOffset: definition.magazineOffset,
+              magazineRotation: definition.magazineRotation,
+              hiddenTags: definition.hiddenTags,
+            },
+          );
+          loaded = true;
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (!loaded) throw lastError ?? new Error(`No viewmodel source for ${definition.id}`);
       // Rifles melee with the knife clips and every gun throws with the M67's.
       await slotViewmodel.loadClips({
         ...definition.clips,
@@ -1818,6 +1835,10 @@ function loadWeaponSlot(slot) {
 
 /** Every rifle the class screen can offer, loaded and settled. */
 function loadAllWeaponSlots() {
+  document.querySelectorAll('.fe-class-card img').forEach((image) => {
+    image.loading = 'eager';
+    image.fetchPriority = 'high';
+  });
   return Promise.all([...weaponSlots.values()].map((slot) => loadWeaponSlot(slot)));
 }
 
@@ -3235,7 +3256,6 @@ async function start() {
       'K cycle camo · N navmesh · V collision · P path · Esc pause',
       navigation ? '' : 'Navigation failed to load; collision and walking are still available.',
     ]);
-    if (globalThis.merkGameStarted) document.getElementById('merk-lobby')?.removeAttribute('hidden');
     updateControlHints();
   } catch (error) {
     console.error(error);
@@ -3518,10 +3538,25 @@ function renderFrame() {
 //
 // The welcome screen asks for input, and the early script above remembers it
 // even while modules are still downloading. Resolve once across all input types.
+const playCountedKey = 'merk-of-duty.play-counted.v1';
+function recordPlayStart() {
+  let newPlayer = false;
+  try {
+    newPlayer = !localStorage.getItem(playCountedKey);
+    localStorage.setItem(playCountedKey, '1');
+  } catch { newPlayer = false; }
+  void fetch('/api/plays', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ newPlayer }),
+  }).catch(() => {});
+}
 globalThis.merkGameStarted = false;
 globalThis.merkStartGame = () => {
   if (globalThis.merkGameStarted) return;
   globalThis.merkGameStarted = true;
+  recordPlayStart();
   document.getElementById('merk-lobby')?.setAttribute('hidden', '');
   frontend.startLoading();
   void start();

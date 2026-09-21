@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
-  DEFAULT_MAP, MAPS, MAP_IDS, MAP_STORAGE_KEY, findMap, isMapId, mapFiles,
+  DEFAULT_MAP, MAPS, MAP_IDS, MAP_STORAGE_KEY, findMap, isMapId, mapFiles, randomBakedMapId,
   mapIntermediateFiles, mapRequiredFiles, rememberMap, resolveMapId,
 } from '../export/web/maps.js';
 
@@ -14,7 +14,7 @@ function memoryStorage(initial = {}) {
   };
 }
 
-test('Nuketown is the default and Hijacked keeps its original file names', () => {
+test('Nuketown remains the legacy fallback and Hijacked keeps its original file names', () => {
   assert.equal(DEFAULT_MAP, 'mp_nuketown_2020');
   assert.ok(MAP_IDS.includes('mp_hijacked'));
   assert.ok(MAP_IDS.includes('mp_nuketown_2020'));
@@ -55,20 +55,22 @@ test('maps resolve by id, prefix, or short name', () => {
   assert.equal(isMapId('constructor'), false);
 });
 
-test('query string beats storage, storage beats default, junk falls through', () => {
+test('query string beats storage, storage beats random default, junk falls through', () => {
   const storage = memoryStorage({ [MAP_STORAGE_KEY]: 'mp_hijacked' });
   assert.equal(resolveMapId({ search: '?map=mp_hijacked', storage }), 'mp_hijacked');
   assert.equal(resolveMapId({ search: '?autostart=1', storage }), 'mp_hijacked');
-  assert.equal(resolveMapId({ search: '?map=mp_raid', storage: memoryStorage() }), DEFAULT_MAP);
-  assert.equal(resolveMapId({ search: '', storage: null }), DEFAULT_MAP);
-  assert.equal(resolveMapId({}), DEFAULT_MAP);
+  assert.equal(resolveMapId({ search: '?map=mp_raid', storage: memoryStorage(), random: () => 0 }), 'mp_hijacked');
+  assert.equal(resolveMapId({ search: '', storage: null, random: () => 0 }), 'mp_hijacked');
+  assert.equal(resolveMapId({ search: '', storage: null, random: () => 0.999 }), 'crash');
+  assert.equal(randomBakedMapId(MAPS, () => 0), 'mp_hijacked');
+  assert.equal(randomBakedMapId(MAPS, () => 0.999), 'crash');
 });
 
 test('an unbaked map is only reachable by explicit link', () => {
   const maps = { ...MAPS, mp_raid: { ...MAPS.mp_nuketown_2020, id: 'mp_raid', prefix: 'raid', baked: false } };
   const storage = memoryStorage({ [MAP_STORAGE_KEY]: 'mp_raid' });
   assert.equal(resolveMapId({ search: '?map=mp_raid', storage, maps }), 'mp_raid');
-  assert.equal(resolveMapId({ search: '', storage, maps }), DEFAULT_MAP);
+  assert.equal(resolveMapId({ search: '', storage, maps, random: () => 0 }), 'mp_hijacked');
   const fresh = memoryStorage();
   rememberMap(fresh, 'mp_raid', maps);
   assert.equal(fresh.getItem(MAP_STORAGE_KEY), null);
@@ -81,7 +83,7 @@ test('a throwing storage never breaks map resolution', () => {
     getItem() { throw new Error('denied'); },
     setItem() { throw new Error('denied'); },
   };
-  assert.equal(resolveMapId({ search: '', storage: broken }), DEFAULT_MAP);
+  assert.equal(resolveMapId({ search: '', storage: broken, random: () => 0 }), 'mp_hijacked');
   assert.doesNotThrow(() => rememberMap(broken, 'mp_hijacked'));
   const storage = memoryStorage();
   rememberMap(storage, 'mp_raid');

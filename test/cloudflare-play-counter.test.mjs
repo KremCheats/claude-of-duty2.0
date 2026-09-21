@@ -59,6 +59,12 @@ test('counterDatabase keeps previews out of production totals', () => {
   assert.equal(counterDatabase(env), env.PLAY_COUNTER);
 });
 
+test('counterDatabase falls back to the account database when optional bindings are absent', () => {
+  const database = new FakeDatabase(0, 0);
+  assert.equal(counterDatabase({ CF_PAGES_BRANCH: 'main', MERK_DB: database }), database);
+  assert.equal(counterDatabase({ CF_PAGES_BRANCH: 'preview', MERK_DB: database }), database);
+});
+
 test('increment atomically advances plays and optionally players', async () => {
   const database = new FakeDatabase(5, 8);
   assert.deepEqual(await increment(database, true), { players: 6, plays: 9 });

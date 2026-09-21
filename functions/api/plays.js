@@ -17,8 +17,8 @@ export function totalsFrom(data) {
 
 export function counterDatabase(env) {
   return env.CF_PAGES_BRANCH === 'main'
-    ? env.PLAY_COUNTER
-    : env.PLAY_COUNTER_PREVIEW;
+    ? (env.PLAY_COUNTER ?? env.MERK_DB)
+    : (env.PLAY_COUNTER_PREVIEW ?? env.MERK_DB);
 }
 
 export async function increment(database, newPlayer) {

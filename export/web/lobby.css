@@ -88,8 +88,8 @@
 .lobby-map-grid-wide .lobby-map { min-height: 230px; display:flex; flex-direction:column; justify-content:end; background:linear-gradient(0deg,rgba(1,4,6,.95),rgba(1,4,6,.05)), linear-gradient(135deg,#40534c,#111a21); }
 .lobby-map-grid-wide .lobby-map:nth-child(1) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.05)),url('./images/merk-lobby-background.webp') center/cover; }
 .lobby-map-grid-wide .lobby-map:nth-child(2) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),linear-gradient(135deg,#344753,#19252c); }
- .lobby-map-grid-wide .lobby-map:nth-child(3) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),url('./ui/menu_mp_map_select_firing_range.png') center/cover; }
- .lobby-map-grid-wide .lobby-map:nth-child(4) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),url('./ui/menu_mp_map_select_crash.png') center/cover; }
+ .lobby-map-grid-wide .lobby-map:nth-child(3) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),url('./ui/menu_mp_map_select_firing_range.webp') center/cover; }
+ .lobby-map-grid-wide .lobby-map:nth-child(4) { background:linear-gradient(0deg,rgba(1,4,6,.92),rgba(1,4,6,.1)),url('./ui/menu_mp_map_select_crash.webp') center/cover; }
 .lobby-map-grid-wide .lobby-map small { line-height:1.45; }
 .lobby-settings-layout { display:grid; grid-template-columns:190px 1fr; gap:18px; min-height:330px; }
 .lobby-settings-tabs { display:grid; align-content:start; gap:2px; }

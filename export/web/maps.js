@@ -73,8 +73,8 @@ export const MAPS = Object.freeze({
     // hidden here rather than shown wrong.
     hiddenNodes: Object.freeze(['fxanim_mp_nuked2025_display_glass_mod']),
   }),
-  firing_range: Object.freeze({ id: 'firing_range', name: 'Firing Range', prefix: 'firing_range', card: 'ui/menu_mp_map_select_firing_range.png', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', surfaceTexture: 'textures/firing_range_surface.png', fallbackSpawn: [0, 0, 0], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[160,0,180],[-160,0,180],[160,0,-180],[-160,0,-180]]), spawnPositions: Object.freeze([[420,0,420],[-420,0,420],[420,0,-420],[-420,0,-420]]), atmosphere: Object.freeze({background:0x11140f,fog:0x1a1e17,near:180,far:1350,hemi:.2,sun:.55,sunColor:0xc6ae7a}) }), baked: true }),
-  crash: Object.freeze({ id: 'crash', name: 'Crash', prefix: 'crash', card: 'ui/menu_mp_map_select_crash.png', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', surfaceTexture: 'textures/crash_surface.png', fallbackSpawn: [0, 0, 0], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[220,0,160],[-220,0,160],[220,0,-160],[-220,0,-160]]), spawnPositions: Object.freeze([[520,0,520],[-520,0,520],[520,0,-520],[-520,0,-520]]), atmosphere: Object.freeze({background:0x17100b,fog:0x25190e,near:200,far:1450,hemi:.18,sun:.6,sunColor:0xd19b62}) }), baked: true }),
+  firing_range: Object.freeze({ id: 'firing_range', name: 'Firing Range', prefix: 'firing_range', card: 'ui/menu_mp_map_select_firing_range.webp', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', surfaceTexture: 'textures/firing_range_surface.png', fallbackSpawn: [0, 0, 0], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[160,0,180],[-160,0,180],[160,0,-180],[-160,0,-180]]), spawnPositions: Object.freeze([[420,0,420],[-420,0,420],[420,0,-420],[-420,0,-420]]), atmosphere: Object.freeze({background:0x11140f,fog:0x1a1e17,near:180,far:1350,hemi:.2,sun:.55,sunColor:0xc6ae7a}) }), baked: true }),
+  crash: Object.freeze({ id: 'crash', name: 'Crash', prefix: 'crash', card: 'ui/menu_mp_map_select_crash.webp', radar: 'ui/hud/compass_map_mp_hijacked.png', minimapSpan: 1250, env: 'textures/env/', probe: 'textures/probe/', vision: 'vision.json', lut: 'textures/mp_hijacked_lut.png', surfaceTexture: 'textures/crash_surface.png', fallbackSpawn: [0, 0, 0], zombies: Object.freeze({ spawnProtection: 650, mysteryBoxPositions: Object.freeze([[220,0,160],[-220,0,160],[220,0,-160],[-220,0,-160]]), spawnPositions: Object.freeze([[520,0,520],[-520,0,520],[520,0,-520],[-520,0,-520]]), atmosphere: Object.freeze({background:0x17100b,fog:0x25190e,near:200,far:1450,hemi:.18,sun:.6,sunColor:0xd19b62}) }), baked: true }),
 });
 
 /**
@@ -98,6 +98,14 @@ export function hideMapNodes(root, map) {
 }
 
 export const MAP_IDS = Object.freeze(Object.keys(MAPS));
+
+export function randomBakedMapId(maps = MAPS, random = Math.random) {
+  const baked = Object.values(maps).filter((map) => map?.baked).map((map) => map.id);
+  if (!baked.length) return DEFAULT_MAP;
+  const draw = Number(random());
+  const index = Math.min(baked.length - 1, Math.max(0, Math.floor((Number.isFinite(draw) ? draw : 0) * baked.length)));
+  return baked[index];
+}
 
 export function isMapId(id) {
   return typeof id === 'string' && Object.hasOwn(MAPS, id);
@@ -169,12 +177,11 @@ export function mapRecommendedFiles(map) {
 
 /**
  * Pick the map for this page load: `?map=` wins, then the remembered choice,
- * then the default. Unknown values fall through rather than throw so a stale
- * link still opens the game. An explicit link to an unbaked map is honoured
- * so it can explain itself; a remembered one is not, or a visitor would be
- * stuck on the error screen until they cleared site data.
+ * then a random baked map. Unknown values fall through rather than throw so a
+ * stale link still opens the game. An explicit link to an unbaked map is
+ * honoured so it can explain itself; a remembered one is not.
  */
-export function resolveMapId({ search = '', storage = null, maps = MAPS } = {}) {
+export function resolveMapId({ search = '', storage = null, maps = MAPS, random = Math.random } = {}) {
   let requested = null;
   try {
     requested = new URLSearchParams(search).get('map');
@@ -191,7 +198,7 @@ export function resolveMapId({ search = '', storage = null, maps = MAPS } = {}) 
   }
   const fromStorage = findMap(remembered, maps);
   if (fromStorage?.baked) return fromStorage.id;
-  return DEFAULT_MAP;
+  return randomBakedMapId(maps, random);
 }
 
 export function rememberMap(storage, id, maps = MAPS) {

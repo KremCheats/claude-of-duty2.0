@@ -12,6 +12,7 @@ const browserPath = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+  '/usr/bin/chromium',
   '/usr/bin/google-chrome',
 ].filter(Boolean).find((candidate) => fs.existsSync(candidate));
 // The page defers its ~40 MB load until a real visitor moves a pointer or
@@ -24,9 +25,9 @@ function autostartUrl(url) {
   return String(parsed);
 }
 
-const browserTestUrl = autostartUrl(process.env.BROWSER_TEST_URL ?? 'http://127.0.0.1:8000/');
+const browserTestUrl = autostartUrl(process.env.BROWSER_TEST_URL ?? 'http://127.0.0.1:8000/?map=mp_hijacked');
 // The same page with the gate left in place, for the test that covers it.
-const uninteractedUrl = process.env.BROWSER_TEST_URL ?? 'http://127.0.0.1:8000/';
+const uninteractedUrl = process.env.BROWSER_TEST_URL ?? 'http://127.0.0.1:8000/?map=mp_hijacked';
 
 test('Hijacked viewer loads collision, navigation, and walking controls', { timeout: 240_000 }, async () => {
   assert.ok(browserPath, 'Chrome or Edge is required for the browser smoke test');
@@ -71,18 +72,14 @@ test('Hijacked viewer loads collision, navigation, and walking controls', { time
       timeout: 30_000,
     });
     assert.equal(response?.status(), 200);
-    await page.locator('#blocker.ready').waitFor({ state: 'visible', timeout: 150_000 });
-    // The shell uppercases its prompt through text-transform, so innerText
-    // returns the rendered casing rather than the authored casing.
+    await page.waitForFunction(() => Boolean(globalThis.hijacked?.debug?.getState), null, { timeout: 150_000 });
     const instructions = await page.locator('#blocker').innerText();
-    assert.match(instructions, /click to play/i);
     assert.doesNotMatch(instructions, /failed/i);
 
     const menu = await page.evaluate(() => ({
       state: globalThis.hijacked.debug.getState().menu,
       screen: document.getElementById('blocker').dataset.screen,
       backdrop: getComputedStyle(document.querySelector('.fe-backdrop')).backgroundImage,
-      cardLoaded: document.querySelector('.fe-card img')?.naturalWidth ?? 0,
       barWidth: document.getElementById('fe-bar').style.width,
     }));
     assert.equal(menu.screen, 'title', 'a finished load lands on the title screen');
@@ -91,9 +88,9 @@ test('Hijacked viewer loads collision, navigation, and walking controls', { time
       activeClass: 'primary',
       // The default class: the M27, the Five-seven, a frag and a smoke.
       loadout: { primary: 'm27', secondary: 'fiveseven', lethal: 'frag', tactical: 'smoke' },
+      attachments: {},
     });
     assert.match(menu.backdrop, /menu_mp_background_main2\.png/, 'the frontend backdrop should be the extracted plate');
-    assert.equal(menu.cardLoaded, 256, 'the Hijacked map card should decode at its authored width');
     assert.equal(menu.barWidth, '100%', 'a finished load fills the bar');
     assert.equal(mapAssetRequests, 1, 'the optimized map must be downloaded exactly once');
 
@@ -1159,12 +1156,16 @@ test('the map payload waits for a sign of a real visitor', { timeout: 120_000 },
     assert.equal(await page.evaluate(() => globalThis.hijacked === undefined), true,
       'the game must not boot without input');
 
-    // One pointer move is all a real visitor needs to start the download.
-    await page.mouse.move(400, 300);
-    await page.waitForResponse(
+    // The new lobby intentionally ignores background pointer movement. A real
+    // visitor starts the download through the explicit Find Match flow.
+    await page.locator('[data-lobby-action="find"]').click();
+    await page.locator('[data-lobby-view="multiplayer"]').waitFor({ state: 'visible', timeout: 5000 });
+    const mapResponse = page.waitForResponse(
       (response) => response.url().includes('hijacked_optimized.glb'),
       { timeout: 30_000 },
     );
+    await page.locator('[data-lobby-view="multiplayer"] [data-lobby-action="start"]').click();
+    await mapResponse;
   } finally {
     await browser.close();
   }

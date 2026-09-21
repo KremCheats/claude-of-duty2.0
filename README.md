@@ -159,7 +159,7 @@ npm run cloudflare:stage
 npm run cloudflare:dev
 ```
 
-Apply migrations `0001` through `0007` to the production and preview D1
+Apply migrations `0001` through `0008` to the production and preview D1
 databases in order before deploying the staged package. Migration `0007` creates
 the server-side session table used by account, profile, lobby, and ranked APIs;
 without it, those APIs intentionally fail closed. Use Wrangler's D1 migration
