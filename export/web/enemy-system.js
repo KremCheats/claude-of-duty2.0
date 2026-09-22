@@ -443,6 +443,9 @@ class Enemy {
     this.currentTarget = null;
     this.walkTime = Math.random() * Math.PI * 2;
     this.playerVisible = false;
+    this.hitReactionPitch = 0;
+    this.hitReactionRoll = 0;
+    this.hitReactionLift = 0;
     this.spawnPoint = {
       position: spawn.position.clone(),
       authoredPosition: spawn.authoredPosition?.clone() ?? spawn.position.clone(),
@@ -581,7 +584,11 @@ class Enemy {
     this.lineOfFireClear = false;
     this.movementSpeed = 0;
     this.playerVisible = false;
-    this.modelRoot.position.y = 0;
+    this.hitReactionPitch = 0;
+    this.hitReactionRoll = 0;
+    this.hitReactionLift = 0;
+    this.modelRoot.position.set(0, 0, 0);
+    this.modelRoot.rotation.x = 0;
     this.modelRoot.rotation.z = 0;
     this.playAction('idle', 0);
     this.root.visible = true;
@@ -620,6 +627,12 @@ class Enemy {
     this.searchTimer = 0;
     this.suppressionTimer = Math.max(this.suppressionTimer, 1.25);
     this.reactionTimer = Math.min(this.reactionTimer, 0.12);
+    const region = hit?.object?.userData?.enemyHit?.region ?? 'torso';
+    const strength = THREE.MathUtils.clamp(applied / 55, 0.22, 1);
+    const side = ((this.index + this.shotsFired) & 1) ? 1 : -1;
+    this.hitReactionPitch += (region === 'head' ? -0.09 : 0.045) * strength;
+    this.hitReactionRoll += side * (region === 'legs' ? 0.045 : 0.085) * strength;
+    this.hitReactionLift += (region === 'head' ? 0.8 : 0.35) * strength;
     if (this.health <= 0) this.die(this.currentTarget);
     else {
       this.state = 'chase';
@@ -839,6 +852,11 @@ class Enemy {
     }
 
     if (!active) return;
+    this.hitReactionPitch = THREE.MathUtils.damp(this.hitReactionPitch, 0, 15, dt);
+    this.hitReactionRoll = THREE.MathUtils.damp(this.hitReactionRoll, 0, 17, dt);
+    this.hitReactionLift = THREE.MathUtils.damp(this.hitReactionLift, 0, 18, dt);
+    this.modelRoot.rotation.x = this.hitReactionPitch;
+    this.modelRoot.rotation.z = this.hitReactionRoll;
     this.lastSeenTimer = Math.max(0, this.lastSeenTimer - dt);
     this.combatTargetTimer = Math.max(0, this.combatTargetTimer - dt);
     if (this.state === 'search') this.searchTimer = Math.max(0, this.searchTimer - dt);
@@ -872,10 +890,10 @@ class Enemy {
       this.playAction('run');
       this.visualTimeScale = THREE.MathUtils.clamp(horizontalSpeed / 210, 0.65, 1.35);
       this.walkTime += dt * THREE.MathUtils.clamp(horizontalSpeed / 28, 5, 10);
-      this.modelRoot.position.y = Math.sin(this.walkTime) * 0.8;
+      this.modelRoot.position.y = Math.sin(this.walkTime) * 0.8 + this.hitReactionLift;
     } else {
       this.playAction('idle');
-      this.modelRoot.position.y = THREE.MathUtils.damp(this.modelRoot.position.y, 0, 12, dt);
+      this.modelRoot.position.y = THREE.MathUtils.damp(this.modelRoot.position.y, this.hitReactionLift, 12, dt);
     }
     this.updateWeapon(dt);
     this.advanceVisual(dt);
