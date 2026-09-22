@@ -59,6 +59,22 @@ async function readNavMeshBytes(source, fetchImpl) {
   return new Uint8Array(await response.arrayBuffer());
 }
 
+async function withTimeout(promise, timeoutMs, label) {
+  const ms = Number(timeoutMs);
+  if (!Number.isFinite(ms) || ms <= 0) return promise;
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
 /**
  * Load a serialized navmesh and return query/path/crowd helpers.
  *
@@ -72,8 +88,10 @@ export async function loadNavigation(sourceOrOptions = DEFAULT_NAVMESH_URL, mayb
     typeof sourceOrOptions.arrayBuffer !== 'function' && typeof sourceOrOptions !== 'string';
   const source = isOptionsObject ? (sourceOrOptions.source ?? DEFAULT_NAVMESH_URL) : sourceOrOptions;
   const options = isOptionsObject ? sourceOrOptions : maybeOptions;
-  await initializeNavigationWasm();
-  const bytes = await readNavMeshBytes(source, options.fetch);
+  const bytes = await withTimeout((async () => {
+    await initializeNavigationWasm();
+    return readNavMeshBytes(source, options.fetch);
+  })(), options.timeoutMs, 'navigation');
   const { navMesh } = importNavMesh(bytes);
   const query = new NavMeshQuery(navMesh, { maxNodes: options.maxNodes ?? 4096 });
   query.defaultQueryHalfExtents = {
