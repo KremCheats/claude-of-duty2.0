@@ -716,7 +716,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
 <div id="merk-lobby" aria-label="Merk Of Duty Remastered main lobby">
   <div class="lobby-particles"></div>
   <div class="lobby-shell">
-    <header class="lobby-brand"><h1>MERK OF DUTY<span>REMASTERED</span></h1></header>
+    <header class="lobby-brand"><span class="lobby-build-state">MERK NETWORK <b>ONLINE</b> · BUILD <em data-build-version>1.5.0</em></span><h1>MERK OF DUTY<span>REMASTERED</span></h1></header>
     <nav class="lobby-nav" aria-label="Main menu">
       <button type="button" data-lobby-nav="play"><span class="nav-icon">▶</span><span>Play</span></button>
       <button type="button" data-lobby-nav="multiplayer"><span class="nav-icon">♟</span><span>Multiplayer</span></button>
@@ -726,11 +726,11 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <button type="button" data-lobby-nav="loadouts"><span class="nav-icon">▰</span><span>Loadouts</span></button>
       <button type="button" data-lobby-nav="store"><span class="nav-icon">▾</span><span>Store</span></button>
       <button type="button" data-lobby-nav="options"><span class="nav-icon">⚙</span><span>Options</span></button>
-      <button type="button" data-lobby-nav="account"><span class="nav-icon">◉</span><span>Account / Sign In</span></button>
+      <button type="button" data-lobby-nav="account"><span class="nav-icon">◉</span><span data-account-nav-label>Account / Sign In</span></button>
     </nav>
     <aside class="lobby-right">
-      <section class="lobby-panel"><div class="lobby-panel-head"><span>PARTY 1/4</span><span class="lobby-online">ONLINE</span></div><div class="lobby-player"><b class="lobby-level">55</b><img class="lobby-emblem" src="./images/player_emblem_nor.webp" alt="Player emblem"><div class="lobby-username">KREMITYSS<small>PRESTIGE 1</small></div><b class="lobby-crown">♛</b></div><div class="lobby-invite"><b>＋</b><span>INVITE PLAYERS</span><small>0 ONLINE</small></div></section>
-      <section class="lobby-panel"><div class="lobby-stats-art"><div><b>LEVEL 55</b><small>PRESTIGE 1</small></div><strong>✠</strong></div><div class="lobby-stat-grid"><div class="lobby-stat"><small>W/L RATIO</small><strong>1.32</strong></div><div class="lobby-stat"><small>K/D RATIO</small><strong>1.48</strong></div><div class="lobby-stat"><small>SCORE PER MIN</small><strong>462</strong></div></div></section>
+      <section class="lobby-panel"><div class="lobby-panel-head"><span>FIRETEAM 1/4</span><span class="lobby-online" data-account-state>GUEST ONLINE</span></div><div class="lobby-player"><b class="lobby-level" data-profile-level>01</b><img class="lobby-emblem" src="./images/player_emblem_nor.webp" alt="Player emblem"><div class="lobby-username" data-profile-name>OPERATIVE<small data-profile-status>LOCAL PROFILE</small></div><b class="lobby-crown">♛</b></div><div class="lobby-invite"><b>＋</b><span>INVITE PLAYERS</span><small data-party-privacy>FRIENDS ONLY</small></div></section>
+      <section class="lobby-panel"><div class="lobby-stats-art"><div><b>CAREER PROFILE</b><small data-profile-xp>0 XP</small></div><strong>✠</strong></div><div class="lobby-stat-grid"><div class="lobby-stat"><small>LEVEL</small><strong data-stat-level>1</strong></div><div class="lobby-stat"><small>WINS</small><strong data-stat-wins>0</strong></div><div class="lobby-stat"><small>SYNC</small><strong data-stat-sync>LOCAL</strong></div></div></section>
     </aside>
     <button class="lobby-find" type="button" data-lobby-action="find"><strong>◎ &nbsp; FIND MATCH</strong><small>QUICK PLAY / PUBLIC MATCH</small></button>
     <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.4.0</span></footer>
@@ -835,18 +835,30 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       </div>
     </div>
     <div class="fe-pause">
-      <h2 class="fe-heading">Paused</h2>
-      <p class="fe-class-sub" id="fe-pause-context">OPERATION PAUSED</p>
-      <div class="fe-buttons">
-        <button type="button" class="fe-btn" data-action="resume">Resume game</button>
-        <button type="button" class="fe-btn" data-action="settings">Options</button>
-        <button type="button" class="fe-btn" data-action="class">Loadout</button>
-        <button type="button" class="fe-btn" data-action="change-team">Change team</button>
-        <button type="button" class="fe-btn" data-action="auth">Social</button>
-        <button type="button" class="fe-btn" data-action="exit">Quit match</button>
-        <button type="button" class="fe-btn" data-action="respawn">Respawn</button>
-        <button type="button" class="fe-btn" data-action="navmesh">Navmesh overlay</button>
-        <button type="button" class="fe-btn" data-action="collision">Collision overlay</button>
+      <div class="pause-command">
+        <div class="pause-command-head">
+          <div><span class="pause-kicker">TACTICAL MENU // MATCH ACTIVE</span><h2 class="fe-heading">PAUSED</h2><p class="fe-class-sub" id="fe-pause-context">OPERATION PAUSED</p></div>
+          <div class="pause-match-card"><small>CURRENT OPERATION</small><strong id="pause-map-name">MAP</strong><span id="pause-mode-name">MULTIPLAYER</span></div>
+        </div>
+        <div class="pause-command-body">
+          <div class="fe-buttons">
+            <button type="button" class="fe-btn pause-primary" data-action="resume">Resume operation</button>
+            <button type="button" class="fe-btn" data-action="class">Create a class</button>
+            <button type="button" class="fe-btn" data-action="settings">Settings</button>
+            <button type="button" class="fe-btn" data-action="auth">Account / Social</button>
+            <button type="button" class="fe-btn" data-action="respawn">Respawn</button>
+            <button type="button" class="fe-btn pause-danger" data-action="exit">Leave match</button>
+            <button type="button" class="fe-btn pause-debug" data-action="navmesh" hidden>Navmesh overlay</button>
+            <button type="button" class="fe-btn pause-debug" data-action="collision" hidden>Collision overlay</button>
+          </div>
+          <aside class="pause-intel">
+            <small>LOADOUT</small><strong id="pause-weapon-name">PRIMARY</strong>
+            <div><span>AMMO</span><b id="pause-ammo">—</b></div>
+            <div><span>HEALTH</span><b id="pause-health">100</b></div>
+            <div><span>SCORE</span><b id="pause-score">0</b></div>
+            <p>Changes made in Settings apply to the active match immediately.</p>
+          </aside>
+        </div>
       </div>
     </div>
     <section class="fe-class" aria-label="Create a class">
