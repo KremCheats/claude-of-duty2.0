@@ -51,8 +51,10 @@ if (lobby) {
     } catch { /* private browsing */ }
   };
   let selected = Math.max(0, nav.findIndex((item) => item.dataset.lobbyNav === 'multiplayer'));
-  let activeMode = 'TEAM DEATHMATCH';
-  const queryMap = new URLSearchParams(location.search).get('map');
+  const queryState = new URLSearchParams(location.search);
+  const rulesetForMode = (mode) => mode === 'FREE FOR ALL' ? 'ffa' : 'tdm';
+  let activeMode = queryState.get('ruleset') === 'ffa' ? 'FREE FOR ALL' : 'TEAM DEATHMATCH';
+  const queryMap = queryState.get('map');
   let activeMapId = queryMap || safeStorage?.getItem(mapKey) || randomBakedMapId();
   const initialMode = new URLSearchParams(location.search).get('mode');
   let queueMode = initialMode === 'zombies' ? 'zombies' : initialMode === 'custom' ? 'custom' : 'multiplayer';
@@ -129,9 +131,13 @@ if (lobby) {
   const startGame = () => {
     const expectedMode = ['zombies', 'custom'].includes(queueMode) ? queueMode : 'multiplayer';
     const query = new URLSearchParams(location.search);
-    if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode || query.get('autostart') !== '1') {
+    const expectedRuleset = expectedMode === 'zombies' ? null : rulesetForMode(activeMode);
+    if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode ||
+        (expectedRuleset && query.get('ruleset') !== expectedRuleset) || query.get('autostart') !== '1') {
       query.set('map', activeMapId);
       query.set('mode', expectedMode);
+      if (expectedMode !== 'zombies') query.set('ruleset', rulesetForMode(activeMode));
+      else query.delete('ruleset');
       query.set('autostart', '1');
       location.assign(`${location.pathname}?${query.toString()}`);
       return;
@@ -578,6 +584,7 @@ if (lobby) {
   addEventListener('merk:settings-changed', () => paintProfile());
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void refreshAccountProfile(); });
   setSelected(selected);
+  setMode(activeMode);
   setMap(activeMapId);
   renderMapCards();
   renderWeaponRoster();
