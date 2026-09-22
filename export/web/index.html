@@ -461,10 +461,20 @@
   #scope .scope-cap.bottom { bottom: 0; }
   body.locked.scoped #crosshair { opacity: 0; }
   #crosshair {
-    position: fixed; left: 50%; top: 50%; z-index: 2; width: 5px; height: 5px;
-    margin: -2px; border-radius: 50%; background: rgba(255,255,255,.9);
-    box-shadow: 0 0 4px #000; opacity: 0; pointer-events: none;
+    --cross-gap: 7px;
+    position: fixed; left: 50%; top: 50%; z-index: 2; width: 42px; height: 42px;
+    margin: -21px; opacity: 0; pointer-events: none;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,.95));
   }
+  #crosshair::after {
+    content:""; position:absolute; left:50%; top:50%; width:3px; height:3px;
+    margin:-1.5px; border-radius:50%; background:rgba(255,255,255,.94);
+  }
+  #crosshair i { position:absolute; left:50%; top:50%; width:7px; height:1.5px; margin-top:-.75px; background:rgba(255,255,255,.9); border-radius:2px; }
+  #crosshair .c-left { transform:translate(calc(-1 * var(--cross-gap) - 100%),0); }
+  #crosshair .c-right { transform:translate(var(--cross-gap),0); }
+  #crosshair .c-top { transform:translate(-50%,calc(-1 * var(--cross-gap))) rotate(90deg); transform-origin:center; }
+  #crosshair .c-bottom { transform:translate(-50%,var(--cross-gap)) rotate(90deg); transform-origin:center; }
   body.locked #crosshair { opacity: 1; }
   body.locked #crosshair.ads { opacity: 0; }
   #hitmarker {
@@ -479,6 +489,13 @@
     position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
     background: url('ui/hud/overlay_low_health.png') center/cover no-repeat;
   }
+  #damage-direction {
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0;
+    mix-blend-mode:screen;
+  }
+  #damage-direction[data-side="left"] { background:radial-gradient(ellipse at left center,rgba(255,34,24,.42),transparent 42%); }
+  #damage-direction[data-side="right"] { background:radial-gradient(ellipse at right center,rgba(255,34,24,.42),transparent 42%); }
+  #damage-direction[data-side="center"] { background:radial-gradient(ellipse at center 10%,rgba(255,38,26,.30),transparent 46%); }
   body.zombies-mode #damage { filter: sepia(1) saturate(2.2) hue-rotate(305deg); }
   #match-status {
     position: fixed; z-index: 2; top: 18px; left: 50%; transform: translateX(-50%);
@@ -698,7 +715,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <section class="lobby-panel"><div class="lobby-stats-art"><div><b>LEVEL 55</b><small>PRESTIGE 1</small></div><strong>✠</strong></div><div class="lobby-stat-grid"><div class="lobby-stat"><small>W/L RATIO</small><strong>1.32</strong></div><div class="lobby-stat"><small>K/D RATIO</small><strong>1.48</strong></div><div class="lobby-stat"><small>SCORE PER MIN</small><strong>462</strong></div></div></section>
     </aside>
     <button class="lobby-find" type="button" data-lobby-action="find"><strong>◎ &nbsp; FIND MATCH</strong><small>QUICK PLAY / PUBLIC MATCH</small></button>
-    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.3.0</span></footer>
+    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.4.0</span></footer>
   </div>
   <section class="lobby-view" data-lobby-view="multiplayer" hidden><div class="lobby-dialog"><h2>MULTIPLAYER LOBBY</h2><p><span data-lobby-current-mode>TEAM DEATHMATCH</span> &nbsp; / &nbsp; <span data-lobby-current-map>NUKETOWN 2025</span> &nbsp; / &nbsp; PUBLIC MATCH</p><div class="lobby-mode-grid"><button class="lobby-mode" data-lobby-mode="TEAM DEATHMATCH" data-active="true">TEAM DEATHMATCH</button><button class="lobby-mode" data-lobby-mode="SEARCH & DESTROY">SEARCH & DESTROY</button><button class="lobby-mode" data-lobby-mode="HARDPOINT">HARDPOINT</button><button class="lobby-mode" data-lobby-mode="CAPTURE THE FLAG">CAPTURE THE FLAG</button><button class="lobby-mode" data-lobby-mode="FREE FOR ALL">FREE FOR ALL</button></div><h3>MAP SELECT</h3><div class="lobby-map-grid"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true"><strong data-map-title>NUKETOWN 2025</strong><small>Atomic test site · 6–12 players</small></button><button class="lobby-map" data-lobby-map="mp_hijacked"><strong data-map-title>HIJACKED</strong><small>Luxury yacht · 8–12 players</small></button><button class="lobby-map" data-lobby-map="firing_range"><strong data-map-title>FIRING RANGE</strong><small>Training facility · 6–10 players</small></button><button class="lobby-map" data-lobby-map="crash"><strong data-map-title>CRASH</strong><small>Desert conflict zone · 6–12 players</small></button></div><div class="lobby-roster"><div class="lobby-roster-row"><span>KREMITYSS</span><small>HOST</small><span>READY</span><span>24ms</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>SEARCHING</small><span>—</span><span>—</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>INVITE</small><span>—</span><span>—</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action secondary" data-lobby-action="map-open">CHANGE MAP</button><button class="lobby-action" data-lobby-action="start">FIND MATCH / START MATCH</button></div></div></section>
   <section class="lobby-view" data-lobby-view="map-select" hidden><div class="lobby-dialog lobby-dialog-wide"><div class="lobby-dialog-top"><div><h2>MAP SELECT</h2><p>CINEMATIC OPERATIONS // SELECT DEPLOYMENT ZONE</p></div><span class="lobby-screen-hint">← / → SCROLL &nbsp; · &nbsp; ENTER SELECT</span></div><div class="lobby-map-grid lobby-map-grid-wide"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true"><strong data-map-title>NUKETOWN 2025</strong><small>Atomic test site · 6–12 players<br>TEAM DEATHMATCH · DOMINATION · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="mp_hijacked"><strong data-map-title>HIJACKED</strong><small>Luxury yacht · 8–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · FREE FOR ALL</small></button><button class="lobby-map" data-lobby-map="firing_range"><strong data-map-title>FIRING RANGE</strong><small>Tactical training grounds · 6–10 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="crash"><strong data-map-title>CRASH</strong><small>Desert conflict zone · 6–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="map-confirm">SELECT MAP</button></div></div></section>
@@ -826,7 +843,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
   </form>
 </section>
 <div id="scope" data-on="false"><div class="scope-side left"></div><div class="scope-side right"></div><div class="scope-cap top"></div><div class="scope-cap bottom"></div><img id="scope-lens" alt=""></div>
-<div id="crosshair"></div>
+<div id="crosshair" aria-hidden="true"><i class="c-left"></i><i class="c-right"></i><i class="c-top"></i><i class="c-bottom"></i></div>
 <svg id="hitmarker" viewBox="0 0 26 26" data-kind="torso" aria-hidden="true">
   <line x1="3" y1="3" x2="9" y2="9"></line>
   <line x1="23" y1="3" x2="17" y2="9"></line>
@@ -834,6 +851,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
   <line x1="23" y1="23" x2="17" y2="17"></line>
 </svg>
 <div id="damage"></div>
+<div id="damage-direction" data-side="center"></div>
 <div id="touch-controls" hidden aria-label="Touch controls">
   <div class="touch-look" data-touch="look" aria-label="Swipe to look"></div>
   <div class="touch-move" data-touch="move" aria-label="Drag to move; push forward to sprint">
@@ -1587,6 +1605,7 @@ frontend.expect({
 });
 const hud = document.getElementById('hud');
 const damageOverlay = document.getElementById('damage');
+const damageDirection = document.getElementById('damage-direction');
 const crosshair = document.getElementById('crosshair');
 const hitmarker = document.getElementById('hitmarker');
 const matchStatus = document.getElementById('match-status');
@@ -1660,6 +1679,7 @@ let zombies = null;
 let playerHealth = null;
 let hitmarkerLife = 0;
 let hitmarkerMaxLife = 0.18;
+let damageDirectionLife = 0;
 let automationPaused = false;
 let enemySimulationActive = true;
 let startupMilliseconds = null;
@@ -3192,8 +3212,11 @@ async function start() {
       regenPerSecond: 25,
       // Being hit jolts the view up and away from the shooter.
       onDamage: ({ amount, source }) => {
-        const flinch = gunplay.kick.flinch(amount, { side: -shooterSide(source) });
+        const side = shooterSide(source);
+        const flinch = gunplay.kick.flinch(amount, { side: -side });
         nudgeView(flinch.pitch, flinch.yaw);
+        damageDirection.dataset.side = side < 0 ? 'left' : side > 0 ? 'right' : 'center';
+        damageDirectionLife = Math.min(0.42, 0.16 + Math.max(0, Number(amount) || 0) / 180);
       },
       onDeath: ({ source }) => {
         clearKeys();
@@ -3543,6 +3566,10 @@ function tick() {
       dead: Boolean(playerHealth?.dead),
     });
 
+    const spreadDegrees = gunplay.spread.angleDegrees(spreadState());
+    const crossGap = THREE.MathUtils.clamp(6 + spreadDegrees * 2.6, 6, 20);
+    crosshair.style.setProperty('--cross-gap', crossGap.toFixed(2) + 'px');
+
     hudElapsed += dt;
     if (hudElapsed >= 0.1) {
       hudElapsed = 0;
@@ -3581,6 +3608,13 @@ function tick() {
     crosshair.classList.toggle('ads', adsState);
     lastAdsState = adsState;
     if (simulationActive) worldAudio?.play(adsState ? 'fly_generic_ads_plr' : 'fly_generic_ads_lower_plr', { gain: 0.6 });
+  }
+
+  if (damageDirectionLife > 0) {
+    damageDirectionLife = Math.max(0, damageDirectionLife - dt);
+    damageDirection.style.opacity = String(Math.min(0.85, damageDirectionLife * 3.4));
+  } else if (damageDirection.style.opacity !== '0') {
+    damageDirection.style.opacity = '0';
   }
 
   if (hitmarkerLife > 0) {
