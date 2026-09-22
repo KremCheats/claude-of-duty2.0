@@ -164,17 +164,18 @@ export class PlayerController {
       this.proneHeight,
     );
 
-    this.gravity = Math.max(0, numberOr(options.gravity, 980));
-    this.jumpHeight = Math.max(0, numberOr(options.jumpHeight, 110));
+    this.movement = { ...MOVEMENT_SETTINGS, ...(options.movement || {}) };
+    this.gravity = Math.max(0, numberOr(options.gravity, this.movement.gravity));
+    this.jumpHeight = Math.max(0, numberOr(options.jumpHeight, 52));
     this.jumpSpeed = Math.max(
       0,
-      numberOr(options.jumpSpeed, Math.sqrt(2 * this.gravity * this.jumpHeight)),
+      numberOr(options.jumpSpeed, this.movement.jumpVelocity || Math.sqrt(2 * this.gravity * this.jumpHeight)),
     );
-    this.moveSpeed = Math.max(0, numberOr(options.moveSpeed, 380));
-    this.sprintSpeed = Math.max(0, numberOr(options.sprintSpeed, 900));
-    this.crouchSpeed = Math.max(0, numberOr(options.crouchSpeed, 190));
-    this.groundAcceleration = Math.max(0, numberOr(options.groundAcceleration, 2600));
-    this.airAcceleration = Math.max(0, numberOr(options.airAcceleration, 900));
+    this.moveSpeed = Math.max(0, numberOr(options.moveSpeed, this.movement.walkSpeed));
+    this.sprintSpeed = Math.max(0, numberOr(options.sprintSpeed, this.movement.sprintSpeed));
+    this.crouchSpeed = Math.max(0, numberOr(options.crouchSpeed, this.movement.crouchSpeed));
+    this.groundAcceleration = Math.max(0, numberOr(options.groundAcceleration, this.movement.groundAcceleration));
+    this.airAcceleration = Math.max(0, numberOr(options.airAcceleration, this.movement.airAcceleration));
     this.maxFallSpeed = Math.max(0, numberOr(options.maxFallSpeed, 2600));
     this.groundSnapSpeed = Math.max(0, numberOr(options.groundSnapSpeed, 80));
     this.groundProbeDistance = Math.max(
@@ -194,7 +195,7 @@ export class PlayerController {
     this.fixedTimeStep = clamp(numberOr(options.fixedTimeStep, 1 / 120), 1 / 300, 1 / 30);
     this.maxSubSteps = Math.max(1, Math.floor(numberOr(options.maxSubSteps, 8)));
     this.maxDelta = Math.max(this.fixedTimeStep, numberOr(options.maxDelta, 0.1));
-    this.movement = { ...MOVEMENT_SETTINGS, ...(options.movement || {}) }; this.stateName = 'idle'; this.slideTimer = 0; this.slideCooldownTimer = 0; this.slideStarted = false; this.slideDirection = new THREE.Vector3(); this.cameraOffsetY = 0; this.cameraFovOffset = 0; this.lastGrounded = false; this.landingTimer = 0;
+    this.stateName = 'idle'; this.slideTimer = 0; this.slideCooldownTimer = 0; this.slideStarted = false; this.slideDirection = new THREE.Vector3(); this.cameraOffsetY = 0; this.cameraFovOffset = 0; this.lastGrounded = false; this.landingTimer = 0;
     this.maxCollisionIterations = Math.max(
       1,
       Math.floor(numberOr(options.maxCollisionIterations, 5)),
@@ -204,8 +205,8 @@ export class PlayerController {
       numberOr(options.maxCollisionStep, this.radius * 0.25),
     );
 
-    this.coyoteTime = Math.max(0, numberOr(options.coyoteTime, 0.1));
-    this.jumpBufferTime = Math.max(0, numberOr(options.jumpBufferTime, 0.12));
+    this.coyoteTime = Math.max(0, numberOr(options.coyoteTime, this.movement.coyoteTime));
+    this.jumpBufferTime = Math.max(0, numberOr(options.jumpBufferTime, this.movement.jumpBufferTime));
     this.fallResetY = Number.isFinite(options.fallResetY) ? options.fallResetY : null;
 
     // Ladders are volumes rather than surfaces: the collision mesh only knows
@@ -326,6 +327,12 @@ export class PlayerController {
     this._jumpBufferTimer = 0;
     this._coyoteTimer = 0;
     this.crouched = false;
+    this.prone = false;
+    this.stateName = 'idle';
+    this.slideTimer = 0;
+    this.slideCooldownTimer = 0;
+    this.cameraOffsetY = 0;
+    this.cameraFovOffset = 0;
     this.onFloor = false;
     this.grounded = false;
     this._lastCollision = null;
@@ -560,7 +567,7 @@ export class PlayerController {
     const speed = Math.hypot(this.velocity.x, this.velocity.z);
     const moving = Math.hypot(this.input.forward, this.input.strafe) > 0.08;
     const wantsSlide = this.input.slide || (this.input.crouch && (this.input.sprint || speed >= this.movement.walkSpeed * 1.15));
-    if (this.onFloor && wantsSlide && this.input.sprint && moving && speed >= this.movement.sprintSpeed * 0.72 && this.slideCooldownTimer <= 0 && !this.onLadder && this.stateName !== 'slide') {
+    if (this.onFloor && wantsSlide && this.input.sprint && moving && speed >= (this.movement.slideMinSpeed ?? this.movement.sprintSpeed * 0.72) && this.slideCooldownTimer <= 0 && !this.onLadder && this.stateName !== 'slide') {
       this.stateName = 'slide'; this.slideTimer = this.movement.slideDuration; this.slideStarted = true; this.slideCooldownTimer = this.movement.slideCooldown;
       this._wishDirection(this.slideDirection); if (this.slideDirection.lengthSq() < 1e-4) this.slideDirection.set(this.velocity.x,0,this.velocity.z).normalize();
       const momentum = Math.max(speed, this.movement.slideSpeed * 0.88); this.velocity.x = this.slideDirection.x * Math.min(momentum, this.movement.slideSpeed); this.velocity.z = this.slideDirection.z * Math.min(momentum, this.movement.slideSpeed); this._setCapsuleHeight(this.crouchHeight); this.crouched = true;
@@ -568,7 +575,7 @@ export class PlayerController {
     if (this.stateName === 'slide') {
       this.slideTimer -= dt; const steer = this._wishDirection(_wish); if (steer.lengthSq() > 1e-4) { this.slideDirection.lerp(steer, Math.min(1, this.movement.slideSteer * dt * 10)).normalize(); }
       const planar = Math.hypot(this.velocity.x,this.velocity.z); const next = Math.max(this.movement.crouchSpeed, planar * Math.exp(-this.movement.slideFriction * dt)); this.velocity.x=this.slideDirection.x*next; this.velocity.z=this.slideDirection.z*next;
-      if (!this.onFloor || this.slideTimer <= 0 || (!this.input.crouch && !this.input.slide && planar < this.movement.crouchSpeed * 1.2)) { this.stateName='slide-cancel'; this.slideCooldownTimer=this.movement.slideCooldown; }
+      if (!this.onFloor || this.slideTimer <= 0 || (!this.input.crouch && !this.input.slide && planar < (this.movement.slideExitSpeed ?? this.movement.crouchSpeed * 1.2))) { this.stateName='slide-cancel'; this.slideCooldownTimer=this.movement.slideCooldown; }
     } else if (this.stateName === 'slide-cancel') {
       this.stateName = this.input.sprint && moving ? 'sprint' : (this.onFloor ? 'crouch' : 'airborne');
     } else if (!this.onFloor) this.stateName = this.velocity.y > 0 ? 'airborne' : 'falling';
