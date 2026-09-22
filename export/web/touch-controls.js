@@ -106,6 +106,7 @@ export class TouchControls {
     this.visible = false;
     this.mode = matchMedia('(pointer: coarse)').matches;
     this.sensitivity = 1;
+    this.haptics = true;
     try {
       const saved = Number(localStorage.getItem('hijacked.touchSensitivity'));
       if (saved > 0) this.sensitivity = clamp(saved, 0.4, 2);
@@ -135,6 +136,10 @@ export class TouchControls {
       const kind = target.dataset.touch;
       const radius = this.stick.offsetWidth * 0.36;
       if (!this.input.begin(event.pointerId, kind, event.clientX, event.clientY, radius)) return;
+      if (this.haptics && navigator.vibrate) {
+        const duration = kind === 'fire' ? 4 : ['slide','prone','jump','melee'].includes(kind) ? 10 : 6;
+        try { navigator.vibrate(duration); } catch {}
+      }
       target.setPointerCapture(event.pointerId);
       this.captures.set(event.pointerId, target);
       if (kind === 'move') {
@@ -172,8 +177,12 @@ export class TouchControls {
 
   setSensitivity(value) {
     if (!Number.isFinite(Number(value))) return;
-    this.sensitivity = clamp(Number(value), 0.4, 2);
+    this.sensitivity = clamp(Number(value), 0.4, 2.5);
     try { localStorage.setItem('hijacked.touchSensitivity', String(this.sensitivity)); } catch {}
+  }
+
+  setHaptics(enabled) {
+    this.haptics = Boolean(enabled);
   }
 
   setEnabled(enabled, visible = enabled) {
