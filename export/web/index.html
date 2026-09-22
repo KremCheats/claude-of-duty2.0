@@ -1813,12 +1813,12 @@ function suspendPlay() {
 function updateControlHints() {
   if (!ready) return;
   frontend.controls = touchControls.mode ? [
-    'Left thumb move · Right thumb swipe to look',
-    'Hold FIRE and drag to aim · JUMP · RELOAD',
+    'Left thumb move · Push forward to sprint · Right thumb swipe to look',
+    'Hold FIRE and drag to aim · JUMP · SLIDE · PRONE · RELOAD',
     'SWITCH guns · MELEE · Hold FRAG to cook, release to throw · Tap SMOKE',
     'Pause for classes and sensitivity · Scores at top right',
   ] : [
-    'WASD move · Shift sprint · Space jump · C/Ctrl crouch',
+    'WASD move · Shift sprint · Space jump · Ctrl crouch · Shift+C slide · V prone',
     'Left mouse fire · Right mouse aim · R reload · B respawn',
     '1/2 or wheel switch guns · E melee · G frag (hold to cook) · Q smoke',
     'K cycle camo · N navmesh · V collision · P path · Esc pause',
@@ -3372,11 +3372,15 @@ function tick() {
   const controlsActive = canControlPlayer();
   touchControls.setEnabled(controlsActive, ready && locked && !frontend.visible && !scoreboardHeld && match.phase === 'playing');
   const touch = touchControls.input.read();
+  const wantsSprint = Boolean(keys.ShiftLeft || keys.ShiftRight || touch.sprint);
+  const wantsProne = Boolean(keys.KeyV || touch.prone);
   const movement = {
     forward: Number(Boolean(keys.KeyW)) - Number(Boolean(keys.KeyS)) + touch.forward,
     strafe: Number(Boolean(keys.KeyD)) - Number(Boolean(keys.KeyA)) + touch.strafe,
-    sprint: Boolean(keys.ShiftLeft || keys.ShiftRight || touch.sprint),
-    crouch: Boolean(keys.ControlLeft || keys.ControlRight || keys.KeyC || touch.crouch),
+    sprint: wantsSprint,
+    crouch: Boolean(keys.ControlLeft || keys.ControlRight || (keys.KeyC && !wantsSprint) || touch.crouch || wantsProne),
+    slide: Boolean((keys.KeyC && wantsSprint) || touch.slide),
+    prone: wantsProne,
     jump: Boolean(keys.Space || touch.jump),
   };
   weapon.setTrigger(controlsActive && (mouseFire || touch.fire));
