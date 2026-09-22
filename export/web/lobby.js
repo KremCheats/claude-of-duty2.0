@@ -1,5 +1,13 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MAPS, findMap, randomBakedMapId } from './maps.js';
 import { WEAPONS } from './weapons.js';
+
+const LOADOUT_ATTACHMENTS = Object.freeze({
+  standard: Object.freeze({ id: 'standard', name: 'STANDARD', detail: 'Factory configuration', magScale: 1, reloadScale: 1 }),
+  extended_mag: Object.freeze({ id: 'extended_mag', name: 'EXTENDED MAG', detail: '+50% magazine capacity', magScale: 1.5, reloadScale: 1 }),
+  fast_mag: Object.freeze({ id: 'fast_mag', name: 'FAST MAG', detail: '20% faster reload', magScale: 1, reloadScale: 1.25 }),
+});
 
 const lobby = document.getElementById('merk-lobby');
 if (lobby) {
@@ -11,10 +19,19 @@ if (lobby) {
   const activeClassKey = 'merk-of-duty.active-class.v2';
   const activeLoadoutKey = 'merk-of-duty.active-loadout.v2';
   const safeStorage = (() => { try { return window.localStorage; } catch { return null; } })();
-  const defaultClass = () => ({ primary: 'm27', secondary: 'fiveseven' });
+  const normalizeAttachment = (value) => LOADOUT_ATTACHMENTS[value] ? value : 'standard';
+  const defaultClass = () => ({
+    primary: 'm27',
+    secondary: 'fiveseven',
+    attachments: { primary: 'standard', secondary: 'standard' },
+  });
   const normalizeClass = (value = {}) => ({
     primary: WEAPONS[value.primary]?.class === 'primary' ? value.primary : 'm27',
     secondary: WEAPONS[value.secondary]?.class === 'secondary' ? value.secondary : 'fiveseven',
+    attachments: {
+      primary: normalizeAttachment(value.attachments?.primary),
+      secondary: normalizeAttachment(value.attachments?.secondary),
+    },
   });
   const readClasses = () => {
     try {
