@@ -17,6 +17,16 @@ if (lobby) {
   let matchStartedAt;
 
   const mapName = (id) => findMap(id)?.name?.toUpperCase() || 'NUKETOWN 2025';
+  const renderMapCards = () => {
+    lobby.querySelectorAll('[data-lobby-map]').forEach((card) => {
+      const map = findMap(card.dataset.lobbyMap);
+      if (!map) return;
+      card.style.setProperty('--map-card-image', `url("./${map.card || ''}")`);
+      card.setAttribute('aria-label', `${map.name} map selection`);
+      const title = card.querySelector('[data-map-title]');
+      if (title) title.textContent = map.name.toUpperCase();
+    });
+  };
   const setSelected = (index) => {
     selected = (index + nav.length) % nav.length;
     nav.forEach((item, i) => {
@@ -41,6 +51,7 @@ if (lobby) {
     try { safeStorage?.setItem(mapKey, activeMapId); } catch { /* private browsing */ }
     lobby.querySelectorAll('[data-lobby-map]').forEach((item) => { item.dataset.active = String(item.dataset.lobbyMap === activeMapId); });
     lobby.querySelectorAll('[data-lobby-current-map], [data-loading-map]').forEach((item) => { item.textContent = map.name.toUpperCase(); });
+    lobby.querySelectorAll('.scoreboard-mode').forEach((item) => { item.textContent = `// ${map.name.toUpperCase()}`; });
   };
   const stopMatchTimer = () => { if (matchTimer) clearInterval(matchTimer); matchTimer = null; };
   const openMatchmaking = () => {
@@ -72,7 +83,7 @@ if (lobby) {
   const startGame = () => {
     const expectedMode = queueMode === 'zombies' ? 'zombies' : 'multiplayer';
     const query = new URLSearchParams(location.search);
-    if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode) {
+    if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode || query.get('autostart') !== '1') {
       query.set('map', activeMapId);
       query.set('mode', expectedMode);
       query.set('autostart', '1');
@@ -142,5 +153,6 @@ if (lobby) {
   loadSettings();
   setSelected(selected);
   setMap(activeMapId);
+  renderMapCards();
   renderWeaponRoster();
 }
