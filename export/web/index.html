@@ -698,7 +698,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <section class="lobby-panel"><div class="lobby-stats-art"><div><b>LEVEL 55</b><small>PRESTIGE 1</small></div><strong>✠</strong></div><div class="lobby-stat-grid"><div class="lobby-stat"><small>W/L RATIO</small><strong>1.32</strong></div><div class="lobby-stat"><small>K/D RATIO</small><strong>1.48</strong></div><div class="lobby-stat"><small>SCORE PER MIN</small><strong>462</strong></div></div></section>
     </aside>
     <button class="lobby-find" type="button" data-lobby-action="find"><strong>◎ &nbsp; FIND MATCH</strong><small>QUICK PLAY / PUBLIC MATCH</small></button>
-    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.2.0</span></footer>
+    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.3.0</span></footer>
   </div>
   <section class="lobby-view" data-lobby-view="multiplayer" hidden><div class="lobby-dialog"><h2>MULTIPLAYER LOBBY</h2><p><span data-lobby-current-mode>TEAM DEATHMATCH</span> &nbsp; / &nbsp; <span data-lobby-current-map>NUKETOWN 2025</span> &nbsp; / &nbsp; PUBLIC MATCH</p><div class="lobby-mode-grid"><button class="lobby-mode" data-lobby-mode="TEAM DEATHMATCH" data-active="true">TEAM DEATHMATCH</button><button class="lobby-mode" data-lobby-mode="SEARCH & DESTROY">SEARCH & DESTROY</button><button class="lobby-mode" data-lobby-mode="HARDPOINT">HARDPOINT</button><button class="lobby-mode" data-lobby-mode="CAPTURE THE FLAG">CAPTURE THE FLAG</button><button class="lobby-mode" data-lobby-mode="FREE FOR ALL">FREE FOR ALL</button></div><h3>MAP SELECT</h3><div class="lobby-map-grid"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true"><strong data-map-title>NUKETOWN 2025</strong><small>Atomic test site · 6–12 players</small></button><button class="lobby-map" data-lobby-map="mp_hijacked"><strong data-map-title>HIJACKED</strong><small>Luxury yacht · 8–12 players</small></button><button class="lobby-map" data-lobby-map="firing_range"><strong data-map-title>FIRING RANGE</strong><small>Training facility · 6–10 players</small></button><button class="lobby-map" data-lobby-map="crash"><strong data-map-title>CRASH</strong><small>Desert conflict zone · 6–12 players</small></button></div><div class="lobby-roster"><div class="lobby-roster-row"><span>KREMITYSS</span><small>HOST</small><span>READY</span><span>24ms</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>SEARCHING</small><span>—</span><span>—</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>INVITE</small><span>—</span><span>—</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action secondary" data-lobby-action="map-open">CHANGE MAP</button><button class="lobby-action" data-lobby-action="start">FIND MATCH / START MATCH</button></div></div></section>
   <section class="lobby-view" data-lobby-view="map-select" hidden><div class="lobby-dialog lobby-dialog-wide"><div class="lobby-dialog-top"><div><h2>MAP SELECT</h2><p>CINEMATIC OPERATIONS // SELECT DEPLOYMENT ZONE</p></div><span class="lobby-screen-hint">← / → SCROLL &nbsp; · &nbsp; ENTER SELECT</span></div><div class="lobby-map-grid lobby-map-grid-wide"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true"><strong data-map-title>NUKETOWN 2025</strong><small>Atomic test site · 6–12 players<br>TEAM DEATHMATCH · DOMINATION · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="mp_hijacked"><strong data-map-title>HIJACKED</strong><small>Luxury yacht · 8–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · FREE FOR ALL</small></button><button class="lobby-map" data-lobby-map="firing_range"><strong data-map-title>FIRING RANGE</strong><small>Tactical training grounds · 6–10 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="crash"><strong data-map-title>CRASH</strong><small>Desert conflict zone · 6–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="map-confirm">SELECT MAP</button></div></div></section>
@@ -1629,6 +1629,7 @@ const lastEnemyShots = new Map();
 const keys = Object.create(null);
 const clock = new THREE.Clock();
 const bootStartedAt = performance.now();
+const fastBoot = matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 6;
 const frameWorkSamples = new Float32Array(180);
 const raycaster = new THREE.Raycaster();
 raycaster.firstHitOnly = true;
@@ -3063,8 +3064,10 @@ async function start() {
     if (!activeMap.baked) {
       throw new Error(`${activeMap.name} (${activeMap.id}) is not exported yet; see README, "Adding a map"`);
     }
-    // Started here so the sky and probes still transfer alongside the map.
-    loadEnvironment();
+    // Start non-critical systems immediately, but do not hold the first playable
+    // frame on lighting/audio. They settle in while map, collision and AI load.
+    void loadEnvironment();
+    void weaponEffects.loadAudio().catch((error) => console.warn('Weapon audio unavailable:', error));
     const navPromise = loadNavigation({
       source: activeMapFiles.navmesh,
       maxAgents: 32,
@@ -3074,12 +3077,15 @@ async function start() {
       console.error('Navigation unavailable:', error);
       return null;
     }).finally(() => frontend.stage('navigation'));
-    // Only the class's two guns are on the boot path; the rest load from the
-    // class screen. See loadWeaponSlot().
-    const viewmodelPromise = Promise.all([
-      loadWeaponSlot(activeWeaponSlot),
-      loadWeaponSlot(weaponSlots.get(loadout.secondary)),
-    ]).finally(() => frontend.stage('viewmodel'));
+    // Only the equipped primary blocks deployment. The secondary begins loading
+    // in parallel so it is usually ready by the first weapon swap, but a slow
+    // phone no longer waits on two complete rigs before entering the match.
+    const viewmodelPromise = loadWeaponSlot(activeWeaponSlot)
+      .finally(() => frontend.stage('viewmodel'));
+    const secondarySlot = weaponSlots.get(loadout.secondary);
+    if (secondarySlot && secondarySlot !== activeWeaponSlot) {
+      void loadWeaponSlot(secondarySlot);
+    }
     const [renderGltf, loadedCollisionWorld, hints, ladders, medalDefs, zombieTemplate] = await Promise.all([
       loadGltf(activeMapFiles.render, 'map').then((gltf) => {
         // KTX2 texture decoding is complete when GLTFLoader resolves.
@@ -3251,7 +3257,7 @@ async function start() {
       : Promise.resolve()
     ).finally(() => frontend.stage('enemy'));
 
-    await Promise.all([viewmodelPromise, weaponEffects.loadAudio(), enemyPromise, loadEnvironment()]);
+    await Promise.all([viewmodelPromise, enemyPromise]);
     refreshTextureFiltering();
 
     const botNames = ['ADMIRAL', 'CORSAIR', 'DEADEYE', 'MARINER', 'ROGUE', 'VIPER'];
@@ -3267,48 +3273,47 @@ async function start() {
       enemyProbes.set(enemy, attachObjectProbe(enemy.root));
     }
 
-    // Compile map and enemy shader variants while the loading blocker is
-    // still visible. Otherwise the first close enemy can trigger synchronous
-    // material compilation in the middle of player movement.
-    await renderer.compileAsync(scene, camera);
-    if (enemies?.enemies[0]) {
-      // Shader compilation does not upload vertex buffers or textures. Render
-      // every shared baked pose once into a 1 px target so no run frame needs
-      // its first GPU upload while the player is already moving.
-      const warmEnemy = enemies.enemies[0];
-      const parent = warmEnemy.root.parent;
-      const warmScene = new THREE.Scene();
-      warmScene.fog = scene.fog;
-      warmScene.add(new THREE.HemisphereLight(0xbfd8ff, 0x3a4a55, 1.1));
-      const warmSun = new THREE.DirectionalLight(0xfff2d8, 1.6);
-      warmSun.position.set(-80, 120, 60);
-      warmScene.add(warmSun, warmEnemy.root);
-      const warmCamera = new THREE.PerspectiveCamera(60, 1, 1, 256);
-      warmCamera.position.copy(warmEnemy.root.position).add(new THREE.Vector3(0, 42, 100));
-      warmCamera.lookAt(warmEnemy.root.position.x, warmEnemy.root.position.y + 36, warmEnemy.root.position.z);
-      const warmTarget = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: true });
-      const previousTarget = renderer.getRenderTarget();
-      renderer.setRenderTarget(warmTarget);
-      const originalState = warmEnemy.visualState;
-      const originalFrame = warmEnemy.visualFrameIndex;
-      for (const [state, frames] of Object.entries(warmEnemy.visualFrames)) {
-        for (let i = 0; i < frames.length; i += 1) {
-          warmEnemy.showVisualFrame(state, i);
+    // Desktop can afford the exhaustive shader/GPU warm-up. On touch/mobile,
+    // compiling every enemy pose before deployment costs more time than it saves.
+    // The first hidden render still primes the visible map, active gun and current
+    // enemy pose, while uncommon variants compile naturally after deployment.
+    if (!fastBoot) {
+      await renderer.compileAsync(scene, camera);
+      if (enemies?.enemies[0]) {
+        const warmEnemy = enemies.enemies[0];
+        const parent = warmEnemy.root.parent;
+        const warmScene = new THREE.Scene();
+        warmScene.fog = scene.fog;
+        warmScene.add(new THREE.HemisphereLight(0xbfd8ff, 0x3a4a55, 1.1));
+        const warmSun = new THREE.DirectionalLight(0xfff2d8, 1.6);
+        warmSun.position.set(-80, 120, 60);
+        warmScene.add(warmSun, warmEnemy.root);
+        const warmCamera = new THREE.PerspectiveCamera(60, 1, 1, 256);
+        warmCamera.position.copy(warmEnemy.root.position).add(new THREE.Vector3(0, 42, 100));
+        warmCamera.lookAt(warmEnemy.root.position.x, warmEnemy.root.position.y + 36, warmEnemy.root.position.z);
+        const warmTarget = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: true });
+        const previousTarget = renderer.getRenderTarget();
+        renderer.setRenderTarget(warmTarget);
+        const originalState = warmEnemy.visualState;
+        const originalFrame = warmEnemy.visualFrameIndex;
+        for (const [state, frames] of Object.entries(warmEnemy.visualFrames)) {
+          for (let i = 0; i < frames.length; i += 1) {
+            warmEnemy.showVisualFrame(state, i);
+            renderer.clear();
+            renderer.render(warmScene, warmCamera);
+          }
+        }
+        renderer.getContext().finish();
+        warmEnemy.showVisualFrame(originalState, originalFrame);
+        for (let i = 0; i < 2; i += 1) {
           renderer.clear();
           renderer.render(warmScene, warmCamera);
+          renderer.getContext().finish();
         }
+        renderer.setRenderTarget(previousTarget);
+        warmTarget.dispose();
+        parent.add(warmEnemy.root);
       }
-      renderer.getContext().finish();
-      warmEnemy.showVisualFrame(originalState, originalFrame);
-      // A couple of synchronized repeats consume delayed driver allocation.
-      for (let i = 0; i < 2; i += 1) {
-        renderer.clear();
-        renderer.render(warmScene, warmCamera);
-        renderer.getContext().finish();
-      }
-      renderer.setRenderTarget(previousTarget);
-      warmTarget.dispose();
-      parent.add(warmEnemy.root);
     }
     frontend.stage('shaders');
     // Prime the post-processing buffers once before deployment. The opaque
