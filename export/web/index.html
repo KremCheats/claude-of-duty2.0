@@ -2478,16 +2478,47 @@ const authSubmit = document.getElementById('merk-auth-submit');
 const authToggle = document.getElementById('merk-auth-toggle');
 let authMode = 'login';
 let authSessionActive = false;
-function syncIdentity(name) {
-  const clean = String(name || '').replace(/^@/, '');
-  if (!clean) return;
-  document.querySelectorAll('.lobby-username').forEach((el) => {
-    const small = el.querySelector('small');
-    el.firstChild.textContent = clean.toUpperCase();
-    if (small) el.appendChild(small);
+function syncIdentity(name, { authenticated = authSessionActive } = {}) {
+  const clean = String(name || runtimeSettings.name || 'OPERATIVE').replace(/^@/, '').trim() || 'OPERATIVE';
+  document.querySelectorAll('[data-profile-name], .lobby-username').forEach((el) => {
+    if (el.matches('[data-profile-name]')) {
+      const small = el.querySelector('small');
+      const text = document.createTextNode(clean.toUpperCase());
+      el.replaceChildren(text);
+      if (small) el.appendChild(small);
+    } else {
+      const small = el.querySelector('small');
+      el.firstChild.textContent = clean.toUpperCase();
+      if (small) el.appendChild(small);
+    }
   });
   const playerLine = document.getElementById('merk-player-line');
   if (playerLine) playerLine.textContent = clean.toUpperCase();
+  document.querySelectorAll('[data-account-state]').forEach((el) => { el.textContent = authenticated ? 'CLOUD ONLINE' : 'GUEST ONLINE'; });
+  document.querySelectorAll('[data-profile-status]').forEach((el) => { el.textContent = authenticated ? 'CLOUD PROFILE' : 'LOCAL PROFILE'; });
+  document.querySelectorAll('[data-stat-sync]').forEach((el) => { el.textContent = authenticated ? 'CLOUD' : 'LOCAL'; });
+  document.querySelectorAll('[data-account-nav-label]').forEach((el) => { el.textContent = authenticated ? 'Account / Connected' : 'Account / Sign In'; });
+  document.querySelectorAll('[data-party-privacy]').forEach((el) => { el.textContent = runtimeSettings.privacy; });
+}
+function syncProfileCard(profile = {}) {
+  const level = Math.max(1, Number(profile.level) || 1);
+  const xp = Math.max(0, Number(profile.xp) || 0);
+  const wins = Math.max(0, Number(profile.wins) || 0);
+  document.querySelectorAll('[data-profile-level]').forEach((el) => { el.textContent = String(level).padStart(2, '0'); });
+  document.querySelectorAll('[data-stat-level]').forEach((el) => { el.textContent = String(level); });
+  document.querySelectorAll('[data-stat-wins]').forEach((el) => { el.textContent = wins.toLocaleString(); });
+  document.querySelectorAll('[data-profile-xp]').forEach((el) => { el.textContent = `${xp.toLocaleString()} XP`; });
+}
+async function refreshProfileCard() {
+  if (!authSessionActive) {
+    syncProfileCard({ level: 1, xp: 0, wins: 0 });
+    return;
+  }
+  try {
+    const response = await fetch('/api/profile', { credentials:'same-origin', cache:'no-store' });
+    if (!response.ok) return;
+    syncProfileCard(await response.json());
+  } catch { /* account identity remains usable when profile sync is unavailable */ }
 }
 function renderAuthMode() {
   const signup = authMode === 'signup';
@@ -2513,10 +2544,13 @@ async function refreshAuthStatus() {
     authSession.hidden = !authSessionActive;
     if (authSessionActive) {
       authSessionName.textContent = data.displayName;
-      authStatus.textContent = 'Progression and profile sync are active on this device.';
-      syncIdentity(data.displayName);
+      authStatus.textContent = 'Progression, settings and identity are synced securely.';
+      syncIdentity(data.displayName, { authenticated: true });
+      await refreshProfileCard();
     } else {
       authStatus.textContent = 'Sign in to sync progression, settings and online identity.';
+      syncIdentity(runtimeSettings.name, { authenticated: false });
+      syncProfileCard({ level:1, xp:0, wins:0 });
     }
     renderAuthMode();
   } catch {
@@ -2532,6 +2566,8 @@ authLogout.addEventListener('click', async () => {
     authSessionActive = false;
     authForm.reset();
     authStatus.textContent = 'Signed out. Guest progression stays on this device.';
+    syncIdentity(runtimeSettings.name, { authenticated:false });
+    syncProfileCard({ level:1, xp:0, wins:0 });
     renderAuthMode();
   } finally { authLogout.disabled = false; }
 });
@@ -2555,7 +2591,8 @@ authForm.addEventListener('submit', async (event) => {
     authSession.hidden = false;
     authSessionName.textContent = data.displayName;
     authStatus.textContent = 'Account connected. Progression sync is active.';
-    syncIdentity(data.displayName);
+    syncIdentity(data.displayName, { authenticated:true });
+    await refreshProfileCard();
     authForm.reset();
     renderAuthMode();
   } catch (error) {
