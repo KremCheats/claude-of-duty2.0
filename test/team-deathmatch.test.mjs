@@ -44,11 +44,11 @@ test('score limit ends TDM for the scoring team', () => {
 test('time limit resolves by team score and permits a draw', () => {
   const winning = match();
   winning.recordKill('enemy-a', 'player');
-  winning.update(60);
+  for (let i = 0; i < 240; i += 1) winning.update(0.25);
   assert.equal(winning.getState().winnerTeam, 'axis');
 
   const draw = match();
-  draw.update(60);
+  for (let i = 0; i < 240; i += 1) draw.update(0.25);
   assert.equal(draw.getState().winnerTeam, null);
 });
 
