@@ -207,3 +207,37 @@ test('jump buffer produces a clean airborne state and landing', () => {
   const world=new THREE.Group(); const floor=new THREE.Mesh(new THREE.BoxGeometry(2000,1,2000)); floor.position.y=-.5; world.add(floor); world.updateWorldMatrix(true,true);
   const player=new PlayerController(new THREE.PerspectiveCamera(),world,{spawn:new THREE.Vector3(0,.2,0)}); run(player,.2,{}); player.update(1/120,{jumpPressed:true}); assert.ok(['airborne','falling'].includes(player.state.movementState)); run(player,2,{}); assert.equal(player.isGrounded,true); assert.ok(['idle','landing'].includes(player.state.movementState));
 });
+
+
+test('prone is a physical low stance and returns cleanly to standing', () => {
+  const world=new THREE.Group();
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(2000,1,2000)); floor.position.y=-.5;
+  world.add(floor); world.updateWorldMatrix(true,true);
+  const player=new PlayerController(new THREE.PerspectiveCamera(),world,{spawn:new THREE.Vector3(0,.2,0)});
+  run(player,.2,{});
+  const standingEye=player.eyeHeight;
+  player.update(1/120,{prone:true});
+  run(player,.2,{prone:true});
+  assert.equal(player.state.movementState,'prone');
+  assert.equal(player.state.prone,true);
+  assert.ok(player.currentHeight < player.crouchHeight);
+  assert.ok(player.eyeHeight < standingEye);
+  run(player,.3,{});
+  assert.equal(player.state.prone,false);
+  assert.equal(player.crouched,false);
+  assert.equal(player.currentHeight,player.height);
+});
+
+test('tactical sprint reaches a distinct faster movement state', () => {
+  const world=new THREE.Group();
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(4000,1,4000)); floor.position.y=-.5;
+  world.add(floor); world.updateWorldMatrix(true,true);
+  const player=new PlayerController(new THREE.PerspectiveCamera(),world,{spawn:new THREE.Vector3(0,.2,0)});
+  run(player,.25,{});
+  run(player,.8,{forward:true,sprint:true,tacticalSprint:true});
+  const planar=Math.hypot(player.velocity.x,player.velocity.z);
+  assert.equal(player.state.movementState,'tactical-sprint');
+  assert.ok(planar > player.sprintSpeed, `tactical sprint speed ${planar} did not exceed sprint ${player.sprintSpeed}`);
+  assert.ok(planar <= player.movement.tacticalSprintSpeed + 1);
+  assert.ok(player.state.cameraFovOffset > player.movement.sprintFovBoost);
+});
