@@ -531,7 +531,7 @@ export class GunAudio {
 }
 
 export class WeaponEffects {
-  constructor(scene, { maxDistance = 10000, maxImpacts = 96, maxFlashes = 12 } = {}) {
+  constructor(scene, { maxDistance = 10000, maxImpacts = 96, maxFlashes = 12, maxTracers = 28 } = {}) {
     this.scene = scene;
     this.maxDistance = maxDistance;
     this.maxImpacts = maxImpacts;
@@ -578,6 +578,25 @@ export class WeaponEffects {
       sprite.frustumCulled = false;
       scene.add(sprite);
       return { sprite, life: 0, maxLife: 0.05 };
+    });
+
+    this.tracerCursor = 0;
+    this.tracers = Array.from({ length: maxTracers }, () => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+      const material = new THREE.LineBasicMaterial({
+        color: 0xffe6a0,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const line = new THREE.Line(geometry, material);
+      line.renderOrder = 25;
+      line.visible = false;
+      line.frustumCulled = false;
+      scene.add(line);
+      return { line, life: 0, maxLife: 0.055 };
     });
   }
 
@@ -742,18 +761,16 @@ export class WeaponEffects {
   }
 
   addTracer(start, end) {
-    const material = new THREE.LineBasicMaterial({
-      color: 0xffe6a0,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-    const line = new THREE.Line(geometry, material);
-    line.renderOrder = 25;
-    this.scene.add(line);
-    this.transients.push({ object: line, life: 0.055, maxLife: 0.055 });
+    const tracer = this.tracers[this.tracerCursor];
+    this.tracerCursor = (this.tracerCursor + 1) % this.tracers.length;
+    const attribute = tracer.line.geometry.getAttribute('position');
+    attribute.setXYZ(0, start.x, start.y, start.z);
+    attribute.setXYZ(1, end.x, end.y, end.z);
+    attribute.needsUpdate = true;
+    tracer.line.geometry.computeBoundingSphere();
+    tracer.line.material.opacity = 0.9;
+    tracer.line.visible = true;
+    tracer.life = tracer.maxLife;
   }
 
   // Bullet hole using the game's impact decal for the surface class; the
@@ -921,6 +938,13 @@ export class WeaponEffects {
       const remaining = flash.life / flash.maxLife;
       flash.sprite.material.opacity = remaining;
       flash.sprite.visible = remaining > 0;
+    }
+    for (const tracer of this.tracers) {
+      if (tracer.life <= 0) continue;
+      tracer.life = Math.max(0, tracer.life - dt);
+      const remaining = tracer.life / tracer.maxLife;
+      tracer.line.material.opacity = remaining * 0.9;
+      tracer.line.visible = remaining > 0;
     }
   }
 
