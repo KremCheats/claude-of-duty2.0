@@ -754,7 +754,6 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
         <button class="lobby-setting-tab" data-setting-tab="graphics">GRAPHICS</button>
         <button class="lobby-setting-tab" data-setting-tab="audio">AUDIO</button>
         <button class="lobby-setting-tab" data-setting-tab="gameplay">INTERFACE</button>
-        <button class="lobby-setting-tab" data-setting-tab="language">LANGUAGE</button>
         <button class="lobby-setting-tab" data-setting-tab="account">ACCOUNT</button>
       </div>
       <div class="lobby-settings-panel">
@@ -763,9 +762,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
           <label>SENSITIVITY <input type="range" min="0.4" max="2.5" step=".1" value="1" data-setting-key="sensitivity"><output data-setting-output="sensitivity">1.0×</output></label>
           <label>ADS SENSITIVITY <input type="range" min="0.4" max="2" step=".1" value=".8" data-setting-key="ads"><output data-setting-output="ads">0.8×</output></label>
           <label>INVERT Y <select data-setting-key="invert"><option>OFF</option><option>ON</option></select></label>
-          <label>AIM ASSIST <select data-setting-key="assist"><option>ON</option><option>OFF</option></select></label>
           <label>AUTO SPRINT <select data-setting-key="autoSprint"><option>ON</option><option>OFF</option></select></label>
-          <label>GYROSCOPE <select data-setting-key="gyro"><option>OFF</option><option>ON</option></select></label>
           <label>HAPTICS <select data-setting-key="vibration"><option>ON</option><option>OFF</option></select></label>
           <label>BUTTON LAYOUT <select data-setting-key="layout"><option>STANDARD</option><option>TACTICAL</option><option>LEFT-HANDED</option></select></label>
         </div>
@@ -773,16 +770,13 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
           <div class="settings-group-head"><b>DISPLAY & PERFORMANCE</b><small>Balanced is recommended for iPhone</small></div>
           <label>QUALITY <select data-setting-key="quality"><option>HIGH</option><option>BALANCED</option><option>PERFORMANCE</option></select></label>
           <label>FPS TARGET <select data-setting-key="fps"><option>30 FPS</option><option>60 FPS</option><option>120 FPS</option><option>UNLIMITED</option></select></label>
-          <label>SHADOW DETAIL <select data-setting-key="shadows"><option>HIGH</option><option>LOW</option><option>OFF</option></select></label>
-          <label>MOTION RESPONSE <select data-setting-key="blur"><option>OFF</option><option>ON</option></select></label>
-          <p class="lobby-setting-note">AUTO resolution scales to hold frame pacing before reducing scene quality.</p>
+          <p class="lobby-setting-note">Balanced uses adaptive resolution and cinematic post finishing. Performance prioritizes frame pacing while preserving gameplay clarity.</p>
         </div>
         <div data-setting-panel="audio" hidden>
           <div class="settings-group-head"><b>AUDIO MIX</b><small>Separate gameplay and music buses</small></div>
           <label>MASTER VOLUME <input type="range" min="0" max="100" value="80" data-setting-key="master"><output data-setting-output="master">80%</output></label>
           <label>MUSIC <input type="range" min="0" max="100" value="55" data-setting-key="music"><output data-setting-output="music">55%</output></label>
           <label>EFFECTS <input type="range" min="0" max="100" value="80" data-setting-key="effects"><output data-setting-output="effects">80%</output></label>
-          <label>VOICE CHAT <select data-setting-key="voice"><option>OFF</option><option>ON</option></select></label>
         </div>
         <div data-setting-panel="gameplay" hidden>
           <div class="settings-group-head"><b>HUD & CAMERA</b><small>Competitive readability controls</small></div>
@@ -790,11 +784,6 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
           <label>CROSSHAIR <select data-setting-key="crosshair"><option>DEFAULT</option><option>CLASSIC</option><option>DOT</option></select></label>
           <label>DAMAGE INDICATORS <select data-setting-key="damage"><option>ON</option><option>OFF</option></select></label>
           <label>FIELD OF VIEW <input type="range" min="70" max="120" value="90" data-setting-key="fov"><output data-setting-output="fov">90°</output></label>
-        </div>
-        <div data-setting-panel="language" hidden>
-          <div class="settings-group-head"><b>LANGUAGE</b><small>Menu language preference</small></div>
-          <label>LANGUAGE <select data-setting-key="language"><option>ENGLISH</option><option>ESPAÑOL</option><option>FRANÇAIS</option></select></label>
-          <p class="lobby-setting-note">Gameplay terminology remains English where localized assets are unavailable.</p>
         </div>
         <div data-setting-panel="account" hidden>
           <div class="settings-group-head"><b>PROFILE</b><small>Synced when signed in</small></div>
@@ -2573,6 +2562,7 @@ async function refreshAuthStatus() {
       syncProfileCard({ level:1, xp:0, wins:0 });
     }
     renderAuthMode();
+    dispatchEvent(new CustomEvent('merk:auth-changed', { detail: { authenticated: authSessionActive, displayName: data.displayName || null } }));
   } catch {
     authStatus.textContent = 'Account service is offline. Guest play is still available.';
   }
@@ -2589,6 +2579,7 @@ authLogout.addEventListener('click', async () => {
     syncIdentity(runtimeSettings.name, { authenticated:false });
     syncProfileCard({ level:1, xp:0, wins:0 });
     renderAuthMode();
+    dispatchEvent(new CustomEvent('merk:auth-changed', { detail: { authenticated: false } }));
   } finally { authLogout.disabled = false; }
 });
 authForm.addEventListener('submit', async (event) => {
@@ -2615,6 +2606,7 @@ authForm.addEventListener('submit', async (event) => {
     await refreshProfileCard();
     authForm.reset();
     renderAuthMode();
+    dispatchEvent(new CustomEvent('merk:auth-changed', { detail: { authenticated: true, displayName: data.displayName } }));
   } catch (error) {
     authStatus.textContent = String(error?.message || 'Authentication failed').replaceAll('_',' ');
   } finally { authSubmit.disabled = false; }
