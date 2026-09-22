@@ -84,6 +84,22 @@ const SPRINT_POSE = Object.freeze({
   // swung the SCAR/Ballista sleeves through the eye during downward look lag.
   pivot: new THREE.Vector3(0, -3, -3),
 });
+const TACTICAL_SPRINT_POSE = Object.freeze({
+  pitch: -0.63,
+  yaw: 0.82,
+  roll: -0.52,
+  x: 0.75,
+  y: -1.85,
+  z: -0.9,
+});
+const SLIDE_POSE = Object.freeze({
+  pitch: -0.10,
+  yaw: 0.18,
+  roll: -0.20,
+  x: 0.55,
+  y: -1.65,
+  z: 0.35,
+});
 
 // How the walk bob changes as sprintBlend rises: stride rate drops by `slow`,
 // lateral and vertical travel grow by `widen` and `lift`, and the gun rolls
@@ -240,6 +256,8 @@ export class Viewmodel {
     this.aiming = false;
     this.aimBlend = 0;
     this.sprintBlend = 0;
+    this.tacticalSprintBlend = 0;
+    this.slideBlend = 0;
     this.pivotShift = new THREE.Vector3();
     this.sprintEuler = new THREE.Euler();
     this.bobTime = 0;
@@ -1132,6 +1150,8 @@ export class Viewmodel {
     const grounded = state.grounded ?? true;
     const moving = Boolean(state.moving);
     const sprinting = Boolean(state.sprinting) && moving;
+    const tacticalSprinting = Boolean(state.tacticalSprinting) && sprinting;
+    const sliding = state.movementState === 'slide';
 
     // Smoothed look velocity drives the weapon lag (sway) behind the camera.
     const safeDt = Math.max(dt, 1e-4);
@@ -1153,6 +1173,18 @@ export class Viewmodel {
       this.sprintBlend,
       sprinting && !this.aiming && !this.reloading ? 1 : 0,
       8,
+      dt,
+    );
+    this.tacticalSprintBlend = damp(
+      this.tacticalSprintBlend,
+      tacticalSprinting && !this.aiming && !this.reloading ? 1 : 0,
+      10,
+      dt,
+    );
+    this.slideBlend = damp(
+      this.slideBlend,
+      sliding && !this.aiming && !this.reloading ? 1 : 0,
+      13,
       dt,
     );
     // Reloading, a melee or a throw cancels the sight picture, as in the game.
@@ -1185,10 +1217,15 @@ export class Viewmodel {
     // Sprinting tightens the grip, so look lag eases off while the stride
     // bob carries on at full strength.
     const lagScale = aimScale * (1 - sprint * 0.6);
+    const tactical = this.tacticalSprintBlend;
+    const slide = this.slideBlend;
+    const sprintPitch = THREE.MathUtils.lerp(SPRINT_POSE.pitch, TACTICAL_SPRINT_POSE.pitch, tactical);
+    const sprintYaw = THREE.MathUtils.lerp(SPRINT_POSE.yaw, TACTICAL_SPRINT_POSE.yaw, tactical);
+    const sprintRoll = THREE.MathUtils.lerp(SPRINT_POSE.roll, TACTICAL_SPRINT_POSE.roll, tactical);
     this.sprintEuler.set(
-      SPRINT_POSE.pitch * sprint,
-      SPRINT_POSE.yaw * sprint,
-      SPRINT_POSE.roll * sprint,
+      sprintPitch * sprint + SLIDE_POSE.pitch * slide,
+      sprintYaw * sprint + SLIDE_POSE.yaw * slide,
+      sprintRoll * sprint + SLIDE_POSE.roll * slide,
     );
     this.swayGroup.rotation.set(
       this.swayRot.x * lagScale + this.sprintEuler.x + bobPitch - proceduralKick * 0.012,
@@ -1204,10 +1241,13 @@ export class Viewmodel {
       .negate()
       .applyEuler(this.swayGroup.rotation)
       .add(SPRINT_POSE.pivot);
+    const sprintX = THREE.MathUtils.lerp(SPRINT_POSE.x, TACTICAL_SPRINT_POSE.x, tactical);
+    const sprintY = THREE.MathUtils.lerp(SPRINT_POSE.y, TACTICAL_SPRINT_POSE.y, tactical);
+    const sprintZ = THREE.MathUtils.lerp(SPRINT_POSE.z, TACTICAL_SPRINT_POSE.z, tactical);
     this.swayGroup.position.set(
-      this.swayPos.x * lagScale + bobX * aimScale + SPRINT_POSE.x * sprint + this.pivotShift.x,
-      this.swayPos.y * lagScale + bobY * aimScale + SPRINT_POSE.y * sprint + this.pivotShift.y,
-      SPRINT_POSE.z * sprint + this.pivotShift.z + proceduralKick * 0.72,
+      this.swayPos.x * lagScale + bobX * aimScale + sprintX * sprint + SLIDE_POSE.x * slide + this.pivotShift.x,
+      this.swayPos.y * lagScale + bobY * aimScale + sprintY * sprint + SLIDE_POSE.y * slide + this.pivotShift.y,
+      sprintZ * sprint + SLIDE_POSE.z * slide + this.pivotShift.z + proceduralKick * 0.72,
     );
 
     this.adsGroup.position.copy(this.adsPos).multiplyScalar(this.aimBlend);
