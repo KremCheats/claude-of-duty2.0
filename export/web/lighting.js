@@ -123,6 +123,9 @@ export const POST_SHADER = {
     highlightTint: { value: new THREE.Vector3(1, 1, 1) },
     visionAmount: { value: 1 },
     saturation: { value: 1 },
+    vignette: { value: 0.16 },
+    dither: { value: 0.0025 },
+    contrast: { value: 1.03 },
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -141,6 +144,9 @@ export const POST_SHADER = {
     uniform vec3 highlightTint;
     uniform float visionAmount;
     uniform float saturation;
+    uniform float vignette;
+    uniform float dither;
+    uniform float contrast;
     varying vec2 vUv;
 
     // The vision set's split tone: vc_YH is a warm highlight target and vc_YL a
@@ -158,6 +164,19 @@ export const POST_SHADER = {
     // back once at the end rather than by weakening each stage.
     vec3 hjSaturation(vec3 c, float s) {
       return mix(vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))), c, s);
+    }
+
+    float hjNoise(vec2 p) {
+      return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));
+    }
+
+    vec3 hjFinish(vec3 c) {
+      c = (c - 0.5) * contrast + 0.5;
+      vec2 q = vUv - 0.5;
+      float edge = smoothstep(0.11, 0.48, dot(q, q));
+      c *= 1.0 - edge * vignette;
+      c += (hjNoise(gl_FragCoord.xy) - 0.5) * dither;
+      return c;
     }
 
     // Matches THREE's ACESFilmicToneMapping so the look is unchanged from
@@ -221,7 +240,9 @@ export const POST_SHADER = {
       // pulled straight back down to 0 and the crushed look returns.
       c = mix(c, sampleLut(c), amount);
       c = hjVision(c);
-      gl_FragColor = vec4(clamp(hjSaturation(c, saturation), 0.0, 1.0), src.a);
+      c = hjSaturation(c, saturation);
+      c = hjFinish(c);
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), src.a);
     }`,
 };
 
