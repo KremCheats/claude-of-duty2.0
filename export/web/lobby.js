@@ -389,29 +389,7 @@ if (lobby) {
     const grid = lobby.querySelector('[data-lobby-weapon-grid]');
     if (!grid) return;
     const view = lobby.querySelector('[data-lobby-view="loadout"] .lobby-dialog');
-    if (view && !view.querySelector('[data-loadout-class-tabs]')) {
-      const classTabs = document.createElement('div');
-      classTabs.className = 'lobby-mode-grid';
-      classTabs.dataset.loadoutClassTabs = '';
-      classTabs.setAttribute('aria-label', 'Saved custom classes');
-      classTabs.innerHTML = Array.from({ length: 5 }, (_, index) =>
-        `<button class="lobby-mode" type="button" data-loadout-class="${index}">CUSTOM ${index + 1}</button>`).join('');
-      const slotTabs = document.createElement('div');
-      slotTabs.className = 'lobby-mode-grid';
-      slotTabs.dataset.loadoutSlotTabs = '';
-      slotTabs.setAttribute('aria-label', 'Weapon slot');
-      slotTabs.innerHTML = '<button class="lobby-mode" type="button" data-loadout-slot="primary">PRIMARY</button><button class="lobby-mode" type="button" data-loadout-slot="secondary">SECONDARY</button>';
-      grid.before(classTabs, slotTabs);
-      classTabs.querySelectorAll('[data-loadout-class]').forEach((button) => button.addEventListener('click', () => {
-        activeClassIndex = Number(button.dataset.loadoutClass);
-        persistLoadouts();
-        renderWeaponRoster();
-      }));
-      slotTabs.querySelectorAll('[data-loadout-slot]').forEach((button) => button.addEventListener('click', () => {
-        activeLoadoutSlot = button.dataset.loadoutSlot;
-        renderWeaponRoster();
-      }));
-    }
+    ensureLoadoutWorkbench(view, grid);
 
     persistLoadouts();
     lobby.querySelectorAll('[data-loadout-class]').forEach((button) => {
@@ -422,6 +400,27 @@ if (lobby) {
     });
 
     const currentLoadout = activeClassLoadout();
+    const currentWeapon = WEAPONS[currentLoadout[activeLoadoutSlot]];
+    renderPreviewStats(currentWeapon);
+
+    const attachmentGrid = lobby.querySelector('[data-loadout-attachment-grid]');
+    if (attachmentGrid) {
+      attachmentGrid.replaceChildren();
+      for (const attachment of Object.values(LOADOUT_ATTACHMENTS)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'loadout-attachment';
+        button.dataset.active = String(currentLoadout.attachments[activeLoadoutSlot] === attachment.id);
+        button.innerHTML = '<strong>' + attachment.name + '</strong><small>' + attachment.detail + '</small>';
+        button.addEventListener('click', () => {
+          currentLoadout.attachments[activeLoadoutSlot] = attachment.id;
+          persistLoadouts();
+          renderWeaponRoster();
+        });
+        attachmentGrid.appendChild(button);
+      }
+    }
+
     grid.replaceChildren();
     for (const weapon of Object.values(WEAPONS).filter((item) => item.class === activeLoadoutSlot)) {
       const card = document.createElement('button');
@@ -429,7 +428,12 @@ if (lobby) {
       card.className = 'lobby-weapon-card';
       card.dataset.weaponId = weapon.id;
       card.dataset.active = String(weapon.id === currentLoadout[activeLoadoutSlot]);
-      card.innerHTML = `<strong>${weapon.name}</strong><small>${weapon.role || weapon.class.toUpperCase()}</small><span>${weapon.damage ?? 0} DMG · ${weapon.magazineSize ?? 0} MAG · ${weapon.roundsPerMinute ?? 0} RPM</span>`;
+      if (weapon.cardArt) card.style.setProperty('--weapon-card-art', 'url("./' + weapon.cardArt + '")');
+      card.innerHTML =
+        '<span class="lobby-weapon-thumb" aria-hidden="true"></span>' +
+        '<strong>' + weapon.name + '</strong>' +
+        '<small>' + (weapon.role || weapon.class.toUpperCase()) + '</small>' +
+        '<span>' + (weapon.damage ?? 0) + ' DMG · ' + (weapon.magazineSize ?? 0) + ' MAG · ' + (weapon.roundsPerMinute ?? 0) + ' RPM</span>';
       card.addEventListener('click', () => {
         currentLoadout[activeLoadoutSlot] = weapon.id;
         persistLoadouts();
@@ -441,21 +445,26 @@ if (lobby) {
     const rows = [...lobby.querySelectorAll('[data-lobby-view="loadout"] .lobby-roster-row')];
     const primary = WEAPONS[currentLoadout.primary];
     const secondary = WEAPONS[currentLoadout.secondary];
-    const setRow = (row, label, weapon) => {
+    const effectiveMagazine = (weapon, slot) => {
+      if (!weapon) return '—';
+      const attachment = LOADOUT_ATTACHMENTS[currentLoadout.attachments[slot]] || LOADOUT_ATTACHMENTS.standard;
+      return String(Math.max(1, Math.ceil((weapon.magazineSize || 1) * attachment.magScale)));
+    };
+    const setRow = (row, label, weapon, slot) => {
       if (!row || !weapon) return;
       const cells = row.children;
       if (cells[0]) cells[0].textContent = label;
       if (cells[1]) cells[1].textContent = weapon.name.toUpperCase();
-      if (cells[2]) cells[2].textContent = (weapon.role || weapon.class).toUpperCase();
-      if (cells[3]) cells[3].textContent = String(weapon.magazineSize ?? '—');
+      if (cells[2]) cells[2].textContent = LOADOUT_ATTACHMENTS[currentLoadout.attachments[slot]]?.name || 'STANDARD';
+      if (cells[3]) cells[3].textContent = effectiveMagazine(weapon, slot);
     };
-    setRow(rows[0], 'PRIMARY', primary);
-    setRow(rows[1], 'SECONDARY', secondary);
+    setRow(rows[0], 'PRIMARY', primary, 'primary');
+    setRow(rows[1], 'SECONDARY', secondary, 'secondary');
     if (rows[2]) {
       const cells = rows[2].children;
       if (cells[0]) cells[0].textContent = 'CLASS PROFILE';
-      if (cells[1]) cells[1].textContent = `CUSTOM ${activeClassIndex + 1}`;
-      if (cells[2]) cells[2].textContent = 'PRIMARY + SECONDARY';
+      if (cells[1]) cells[1].textContent = 'CUSTOM ' + (activeClassIndex + 1);
+      if (cells[2]) cells[2].textContent = '2 WEAPONS / 2 ATTACHMENTS';
       if (cells[3]) cells[3].textContent = 'SAVED';
     }
     if (rows[3]) {
