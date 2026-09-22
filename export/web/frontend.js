@@ -353,7 +353,7 @@ export class Frontend {
       if (option && !option.ready) return false;
       if (!option) delete this.loadout[classId];
     }
-    const loadoutResult = this.onSelectLoadout?.({ ...this.loadout });
+    const loadoutResult = this.onSelectLoadout?.({ ...this.loadout, attachments: { ...this.attachments } });
     if (loadoutResult === false) return false;
     const result = this.onSelectWeapon?.(primary.id);
     if (result === false) return false;
