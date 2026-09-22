@@ -58,6 +58,8 @@ export class ViewBob {
     const grounded = state.grounded ?? true;
     const moving = Boolean(state.moving);
     const sprinting = Boolean(state.sprinting) && moving;
+    const cinematic = Boolean(state.cinematic);
+    const motionScale = cinematic ? 1.16 : 1;
 
     this.sprintBlend = damp(this.sprintBlend, sprinting ? 1 : 0, 8, dt);
     const sprint = this.sprintBlend;
@@ -89,13 +91,14 @@ export class ViewBob {
     this.offset.set(
       stride * lerp(WALK.side, SPRINT.side) * amp,
       // Footfalls dip rather than lift, so the rise is biased downward.
-      (step - 0.5) * lerp(WALK.rise, SPRINT.rise) * amp + this.landingOffset,
+      ((step - 0.5) * lerp(WALK.rise, SPRINT.rise) * amp + this.landingOffset) * motionScale,
       0,
     );
+    this.offset.x *= motionScale;
     this.tilt.set(
-      step * lerp(WALK.pitch, SPRINT.pitch) * amp - SPRINT.lean * sprint + this.landingPitch,
+      (step * lerp(WALK.pitch, SPRINT.pitch) * amp - SPRINT.lean * sprint + this.landingPitch) * motionScale,
       0,
-      stride * lerp(WALK.roll, SPRINT.roll) * amp,
+      stride * lerp(WALK.roll, SPRINT.roll) * amp * motionScale,
     );
   }
 
