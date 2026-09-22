@@ -1,45 +1,90 @@
 import { loadSettings, saveSettings } from './settings-runtime.js';
-const STORAGE = 'merk-of-duty.profile.v2';
-const defaults = { name:'GUEST OPERATIVE', level:1, xp:0, wins:0, mode:'normal', quality:'hd', fov:90, aim:'TAP TO AIM', split:true, hud:true, sensitivity:1, minimap:100, hitmarkers:'ALL', layout:'STANDARD', audio:'HEADPHONES', vibration:true, fps60:true, hudEdit:false, operator:'Mara Vex', loadouts:{alpha:{primary:'Vanguard AR',secondary:'Sidearm 9',tactical:'Flash Charge',lethal:'Frag Device',perks:'Runner'},bravo:{primary:'Rook SMG',secondary:'Breaker Shotgun',tactical:'Signal Jammer',lethal:'Impact Charge',perks:'Deadeye'},charlie:{primary:'Longwatch Sniper',secondary:'Arc Pistol',tactical:'Smoke Capsule',lethal:'Proximity Mine',perks:'Field Medic'}}, sensX:1, sensY:1, lookDeadzone:0.08, moveDeadzone:0.12, adsSens:0.8, response:'STANDARD', fps:'60 FPS', graphics:'HIGH', fovScale:'VERTICAL', sprint:'AUTO SPRINT', slide:'TAP CROUCH', gyro:'OFF', filter:'STANDARD', motionBlur:false, depth:false, shadows:true, autoFire:false };
-const load=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(STORAGE)||'{}')}}catch{return {...defaults}}};
-const p=load(), $=q=>document.querySelector(q), hub=$('#merk-hub'), drawer=$('#merk-ops-drawer'), loading=$('#merk-loading');
-let runtimeSettings = loadSettings();
-const commitRuntime = (patch) => { runtimeSettings = saveSettings({ ...runtimeSettings, ...patch }); return runtimeSettings; };
-const syncProfile=async()=>{try{await fetch('/api/profile',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({display_name:p.name,level:p.level,xp:p.xp,wins:p.wins,profile_json:p})})}catch{}};
-const save=p=>{try{localStorage.setItem(STORAGE,JSON.stringify(p));syncProfile()}catch{}};
-const loadProfile=async()=>{try{const r=await fetch('/api/profile');if(!r.ok)return;const d=await r.json();if(d?.profile_json){Object.assign(p,d.profile_json);localStorage.setItem(STORAGE,JSON.stringify(p));render()}}catch{}};
-const modeNames={normal:'NORMAL MULTIPLAYER · AUTO MATCHMAKING',ranked:'RANKED · SKILL MATCHMAKING',hardcore:'HARDCORE · AUTO MATCHMAKING',zombies:'ZOMBIES · CO-OP MATCHMAKING'};
-function render(){
-  if (!hub) return;
-  $('#merk-player-line').textContent=`${p.name} · LEVEL ${String(p.level).padStart(2,'0')}`; $('#merk-rank-badge').textContent=String(p.level).padStart(2,'0'); $('#merk-leader-score').textContent=`${p.wins} WINS`;
-  $('#merk-rank-xp').textContent=`${p.xp.toLocaleString()} / 1,000 XP`; $('#merk-rank-progress')?.style.setProperty('width',`${Math.min(100,p.xp/10)}%`); $('#merk-rank-card').textContent=p.mode==='ranked'?'ROOKIE I // 0 RP':'READY // AUTO MATCHMAKING';
-  $('#merk-quality').value=p.quality; $('#merk-fov').value=p.fov; $('#merk-fov-out').value=`${p.fov}°`; $('#merk-fov-out').textContent=`${p.fov}°`; $('#merk-aim').value=p.aim; $('#merk-split').checked=p.split; $('#merk-hud').checked=p.hud; $('#merk-hud-edit')?.setAttribute('checked',p.hudEdit?'':''); document.body.classList.toggle('hud-edit',p.hudEdit);
-  $('#merk-sensitivity').value=p.sensitivity; $('#merk-sensitivity-out').textContent=`${Number(p.sensitivity).toFixed(1)}×`; for(const [id,key,fmt] of [['merk-sens-x','sensX',v=>Number(v).toFixed(2)+'×'],['merk-sens-y','sensY',v=>Number(v).toFixed(2)+'×'],['merk-look-deadzone','lookDeadzone',v=>Math.round(v*100)+'%'],['merk-move-deadzone','moveDeadzone',v=>Math.round(v*100)+'%'],['merk-ads-sens','adsSens',v=>Number(v).toFixed(2)+'×']]){$('#'+id)?.setAttribute('value',p[key]);$('#'+id+'-out')?.replaceChildren(fmt(p[key]))}; $('#merk-minimap').value=p.minimap; $('#merk-minimap-out').textContent=`${p.minimap}%`; $('#merk-hitmarkers').value=p.hitmarkers; $('#merk-layout').value=p.layout; $('#merk-audio').value=p.audio; $('#merk-vibration').checked=p.vibration; $('#merk-60fps').checked=p.fps60;
-  document.querySelectorAll('.merk-mode').forEach(b=>b.classList.toggle('is-active',b.dataset.mode===p.mode));
-}
-function openDrawer(tab='play'){if(!drawer)return;drawer.hidden=false;document.querySelectorAll('.merk-ops-nav button').forEach(b=>b.classList.toggle('is-active',b.dataset.merkTab===tab));document.querySelectorAll('[data-merk-view]').forEach(v=>v.classList.toggle('is-active',v.dataset.merkView===tab));$('#merk-drawer-title').textContent=tab==='play'?'OPERATIONS':tab.toUpperCase();}
-function closeDrawer(){if(drawer)drawer.hidden=true}
-function startLoading(){
-  if(p.mode==='zombies'){const u=new URL(location.href);u.searchParams.set('mode','zombies');history.replaceState({},'',u)}
-  closeDrawer();
-  if(hub)hub.hidden=true;
-  if(loading) loading.hidden=false;
-  const bar=$('#merk-loading-bar'),pct=$('#merk-loading-percent'),cap=$('#merk-loading-caption');
-  if(bar)bar.style.width='12%'; if(pct)pct.textContent='12%'; if(cap)cap.textContent='INITIALIZING MATCH';
-  document.querySelector('#fe-load-game')?.click();
-  // The real frontend owns loading progress. This legacy transition no longer
-  // holds every player behind an artificial five-second timer.
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{if(loading)loading.hidden=true}));
-}
-function bind(){
- document.querySelectorAll('.merk-ops-nav [data-merk-tab],.merk-ops-card[data-merk-tab]').forEach(b=>b.addEventListener('click',()=>openDrawer(b.dataset.merkTab)));
- $('#merk-hub-close')?.addEventListener('click',closeDrawer); document.querySelectorAll('.merk-mode').forEach(b=>b.addEventListener('click',()=>{p.mode=b.dataset.mode;save(p);render()})); $('#merk-deploy')?.addEventListener('click',startLoading); $('#merk-drawer-deploy')?.addEventListener('click',startLoading); $('#merk-ranked-start')?.addEventListener('click',()=>{p.mode='ranked';save(p);startLoading()});
- $('#merk-custom')?.addEventListener('click',()=>alert('Custom Games: choose rules and invite your fireteam. Public matchmaking never asks you to pick a map.')); $('#merk-signin')?.addEventListener('click',()=>{const panel=$('#merk-auth-panel');if(panel)panel.hidden=false;$('#merk-auth-email')?.focus()});
- const settingIds={ 'merk-sens-x':['sensitivity',Number], 'merk-sens-y':['sensitivity',Number], 'merk-look-deadzone':['lookDeadzone',Number], 'merk-move-deadzone':['moveDeadzone',Number], 'merk-ads-sens':['ads',Number], 'merk-response':['response',String], 'merk-fps':['fps',String], 'merk-graphics':['quality',String], 'merk-fov-scale':['fovScale',String], 'merk-sprint':['autoSprint',v=>String(v).includes('AUTO')?'ON':'OFF'], 'merk-slide':['slide',String], 'merk-gyro':['gyro',String], 'merk-filter':['filter',String] }; Object.entries(settingIds).forEach(([id,[key,fn]])=>{const el=$('#'+id); if(el){el.value=p[key]; el.addEventListener(el.type==='range'?'input':'change',e=>{p[key]=fn(e.target.value);save(p); if(['sensitivity','ads','fps','quality','autoSprint','gyro'].includes(key)) commitRuntime({[key]:p[key]}); render()})}}); ['motionBlur','depth','shadows','autoFire'].forEach(key=>{const id='merk-'+({'motionBlur':'motion-blur','depth':'depth','shadows':'shadows','autoFire':'auto-fire'}[key]);const el=$('#'+id);if(el){el.checked=p[key];el.addEventListener('change',e=>{p[key]=e.target.checked;save(p)})}});
-  const bindVal=(id,key,fn=String)=>$('#'+id)?.addEventListener('change',e=>{p[key]=fn(e.target.value);save(p);render()}); bindVal('merk-quality','quality'); bindVal('merk-aim','aim'); bindVal('merk-hitmarkers','hitmarkers'); bindVal('merk-layout','layout'); bindVal('merk-audio','audio'); bindVal('merk-sensitivity','sensitivity',Number); bindVal('merk-minimap','minimap',Number);
- $('#merk-fov')?.addEventListener('input',e=>{p.fov=Number(e.target.value);save(p);commitRuntime({fov:p.fov});render()}); $('#merk-split')?.addEventListener('change',e=>{p.split=e.target.checked;save(p)}); $('#merk-hud')?.addEventListener('change',e=>{p.hud=e.target.checked;save(p);document.body.classList.toggle('merk-hud-hidden',!p.hud)}); $('#merk-hud-edit')?.addEventListener('change',e=>{p.hudEdit=e.target.checked;save(p);document.body.classList.toggle('hud-edit',p.hudEdit)}); $('#merk-vibration')?.addEventListener('change',e=>{p.vibration=e.target.checked;save(p);commitRuntime({vibration:p.vibration?'ON':'OFF'})}); document.querySelectorAll('[data-operator]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-operator]').forEach(x=>x.classList.remove('is-active'));b.classList.add('is-active');p.operator=b.dataset.operator;save(p);$('#merk-operator-selected').textContent=`SELECTED // ${p.operator.toUpperCase()}`})); document.querySelectorAll('[data-loadout]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-loadout]').forEach(x=>x.classList.remove('is-active'));b.classList.add('is-active');const l=p.loadouts[b.dataset.loadout];if(l){for(const [id,key] of [['class-primary','primary'],['class-secondary','secondary'],['class-tactical','tactical'],['class-lethal','lethal'],['class-perks','perks']])$('#'+id).value=l[key]}})); async function auth(kind){const email=$('#merk-auth-email')?.value.trim(),password=$('#merk-auth-password')?.value,name=$('#merk-auth-name')?.value.trim();const status=$('#merk-auth-status');if(!email||!password||(kind==='signup'&&!name)){status.textContent='EMAIL, PASSWORD AND IN-GAME NAME REQUIRED';return}status.textContent='CONNECTING…';try{const r=await fetch('/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:kind,email,password,displayName:name})});const d=await r.json();if(!r.ok)throw Error(d.error||'AUTH FAILED');p.name=(d.displayName||name||p.name).replace(/^@/,'');save(p);render();loadProfile();status.textContent=`SIGNED IN // @${p.name}`;}catch(e){status.textContent=e.message.toUpperCase()}} $('#merk-signup')?.addEventListener('click',()=>auth('signup')); $('#merk-login')?.addEventListener('click',()=>auth('login')); document.querySelectorAll('[data-attachment]').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('is-active')));
-$('#class-save')?.addEventListener('click',()=>{const tab=document.querySelector('[data-loadout].is-active')?.dataset.loadout||'alpha';p.loadouts[tab]={primary:$('#class-primary').value,secondary:$('#class-secondary').value,tactical:$('#class-tactical').value,lethal:$('#class-lethal').value,perks:$('#class-perks').value};save(p);alert(`${tab.toUpperCase()} LOADOUT SAVED`)}); $('#merk-60fps')?.addEventListener('change',e=>{p.fps60=e.target.checked;save(p);commitRuntime({fps:p.fps60?'60 FPS':'30 FPS'})});
-}
-bind(); render(); if(hub)hub.hidden=true; setInterval(()=>{const el=$('#merk-clock');if(el)el.textContent=new Date().toISOString().slice(11,19)+' ZULU'},1000); window.merkOfDuty={profile:p,openHub:()=>{if(hub)hub.hidden=false},closeHub:()=>{if(hub)hub.hidden=true}};
 
-loadProfile();
+const $ = (selector) => document.querySelector(selector);
+const storage = (() => { try { return localStorage; } catch { return null; } })();
+const LEGACY_PROFILE_KEY = 'merk-of-duty.profile.v2';
+
+let settings = loadSettings(storage);
+let profile = {
+  name: settings.name,
+  level: 1,
+  xp: 0,
+  wins: 0,
+  mode: 'normal',
+};
+
+try {
+  const old = JSON.parse(storage?.getItem(LEGACY_PROFILE_KEY) || '{}');
+  profile = { ...profile, ...old, name: old.name || settings.name };
+} catch {}
+
+function renderCompatibilityProfile() {
+  $('#merk-player-line')?.replaceChildren(`${profile.name.toUpperCase()} · LEVEL ${String(profile.level || 1).padStart(2,'0')}`);
+  const badge = $('#merk-rank-badge');
+  if (badge) badge.textContent = String(profile.level || 1).padStart(2,'0');
+  const score = $('#merk-leader-score');
+  if (score) score.textContent = `${Number(profile.wins || 0)} WINS`;
+}
+
+function saveProfile() {
+  settings = saveSettings({ ...settings, name: profile.name }, storage);
+  try { storage?.setItem(LEGACY_PROFILE_KEY, JSON.stringify(profile)); } catch {}
+  renderCompatibilityProfile();
+}
+
+async function loadCloudProfile() {
+  try {
+    const auth = await fetch('/api/auth', { credentials:'same-origin', cache:'no-store' });
+    if (!auth.ok) return;
+    const session = await auth.json();
+    if (!session.authenticated) return;
+    profile.name = String(session.displayName || profile.name).replace(/^@/,'');
+    const response = await fetch('/api/profile', { credentials:'same-origin', cache:'no-store' });
+    if (response.ok) {
+      const cloud = await response.json();
+      profile = {
+        ...profile,
+        level: Number(cloud.level) || profile.level,
+        xp: Number(cloud.xp) || profile.xp,
+        wins: Number(cloud.wins) || profile.wins,
+      };
+    }
+    renderCompatibilityProfile();
+  } catch {}
+}
+
+// The old operations hub is retained only as a compatibility surface. The
+// remastered lobby owns navigation, settings, loading, and authentication.
+$('#merk-signin')?.addEventListener('click', () => {
+  const panel = $('#merk-auth-panel');
+  if (panel) panel.hidden = false;
+});
+$('#merk-deploy')?.addEventListener('click', () => globalThis.merkStartGame?.());
+$('#merk-drawer-deploy')?.addEventListener('click', () => globalThis.merkStartGame?.());
+document.querySelectorAll('.merk-mode').forEach((button) => button.addEventListener('click', () => {
+  profile.mode = button.dataset.mode || profile.mode;
+  saveProfile();
+}));
+
+addEventListener('merk:settings-changed', (event) => {
+  settings = event.detail;
+  profile.name = settings.name || profile.name;
+  renderCompatibilityProfile();
+});
+
+renderCompatibilityProfile();
+void loadCloudProfile();
+
+globalThis.merkOfDuty = {
+  profile,
+  get settings() { return settings; },
+  openHub() {
+    const lobby = $('#merk-lobby');
+    if (lobby) lobby.hidden = false;
+  },
+  closeHub() {
+    const lobby = $('#merk-lobby');
+    if (lobby) lobby.hidden = true;
+  },
+  saveProfile,
+};
