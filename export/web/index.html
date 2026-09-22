@@ -1850,6 +1850,7 @@ for (const slot of weaponSlots.values()) {
     },
   });
 }
+applyAttachmentEffects({ refill: true });
 weapon = activeWeaponSlot.controller;
 
 // Viewmodels load one rifle at a time. Loading all nine up front spent about
@@ -1958,6 +1959,12 @@ function applyLoadout(picked) {
     if ((cls === 'primary' || cls === 'secondary') && findWeapon(id)?.class === cls) loadout[cls] = findWeapon(id).id;
     if ((cls === 'lethal' || cls === 'tactical') && EQUIPMENT[id]?.class === cls) loadout[cls] = id;
   }
+  for (const weaponClass of ['primary', 'secondary']) {
+    const weaponId = loadout[weaponClass];
+    const requested = picked?.attachments?.[weaponId] ?? picked?.attachments?.[weaponClass];
+    if (requested != null) loadoutAttachments[weaponClass] = normalizeClassAttachment(requested);
+  }
+  applyAttachmentEffects({ refill: true });
   resetEquipment();
   renderEquipmentHud();
   // Bring the primary up if the gun in hand is no longer part of the class.
@@ -2063,6 +2070,7 @@ function resetPlayerLife() {
   player.respawn();
   player.setEnabled(true);
   worldAudio?.play('fly_generic_first_raise_plr', { gain: 0.7 });
+  applyAttachmentEffects({ refill: true });
   for (const slot of weaponSlots.values()) {
     slot.controller.resetLoadout();
     slot.viewmodel.resetActions();
@@ -2474,8 +2482,9 @@ function updateScope(dt, { holdBreath = false, active = true } = {}) {
 
 function reloadWeapon() {
   const empty = weapon.magazine === 0;
+  const reloadSpeed = attachmentForWeapon(activeWeaponId) === 'fast_mag' ? 1.25 : 1;
   if (!weapon.startReload()) return false;
-  if (!viewmodel.reload(empty)) {
+  if (!viewmodel.reload(empty, { speed: reloadSpeed })) {
     weapon.cancelReload();
     return false;
   }
@@ -2719,6 +2728,7 @@ function getDebugState() {
       breathHeld: scopeState.holding,
     },
     loadout: { ...loadout },
+    attachments: { ...loadoutAttachments },
     equipment: { ...equipmentAmmo, live: grenades?.activeCount ?? 0, clouds: grenades?.clouds.length ?? 0,
       held: throwState?.item.kind ?? null, cookedSeconds: Number((throwState?.cookedSeconds ?? 0).toFixed(3)) },
     enemies: enemies?.enemies.map((enemy) => ({
