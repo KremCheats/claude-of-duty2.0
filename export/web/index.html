@@ -908,7 +908,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
 <div id="death-card"><strong id="death-killer"></strong><span id="respawn-copy"></span></div>
 <div id="scoreboard">
   <div class="scoreboard-panel">
-    <h2>TEAM DEATHMATCH <span class="scoreboard-mode">// NUKETOWN 2025</span></h2>
+    <h2><span id="scoreboard-title">TEAM DEATHMATCH</span> <span class="scoreboard-mode">// NUKETOWN 2025</span></h2>
     <p id="match-result">TEAM 1 <b>75</b> &nbsp; — &nbsp; TEAM 2 <b>62</b> &nbsp; · &nbsp; 04:32</p>
     <div class="scoreboard-row head"><span>#</span><span>Player</span><span>Score</span><span>Kills</span><span>Deaths</span></div>
     <div id="scoreboard-rows"></div>
@@ -1021,6 +1021,7 @@ import { EnemyManager } from './enemy-system.js';
 import { ZombieManager, ZOMBIES_CONFIG } from './zombies.js';
 import { PlayerHealth } from './player-health.js';
 import { FreeForAllMatch } from './free-for-all-match.js';
+import { TeamDeathmatchMatch } from './team-deathmatch-match.js';
 import { MedalTracker } from './medals.js';
 import { Hud, calibrationFromCorners } from './hud.js';
 import { Frontend } from './frontend.js';
@@ -1063,6 +1064,8 @@ let runtimeSettings = loadRuntimeSettings(mapStorage);
 const mapParams = new URLSearchParams(location.search);
 const gameMode = mapParams.get('mode') ?? 'multiplayer';
 const customMode = gameMode === 'custom';
+const selectedRuleset = mapParams.get('ruleset') === 'ffa' ? 'ffa' : 'tdm';
+const rulesetLabel = selectedRuleset === 'ffa' ? 'FREE FOR ALL' : 'TEAM DEATHMATCH';
 function nextFairMapId(storage) {
   const key = `merk-map-bag:${gameMode}`;
   let bag = [];
@@ -1853,8 +1856,17 @@ const medalPopups = [];
 const MEDAL_HOLD_SECONDS = 2.1;
 const MEDAL_FADE_SECONDS = 0.45;
 
-const match = new FreeForAllMatch({ scoreLimit: 30, timeLimitSeconds: 300 });
-match.register('player', 'YOU', { human: true });
+const teamMode = !zombiesMode && selectedRuleset === 'tdm';
+const teamForActor = (actor) => {
+  if (!teamMode || !actor) return null;
+  if (actor === player) return 'allies';
+  if (Number.isInteger(actor.index)) return actor.index % 2 === 0 ? 'axis' : 'allies';
+  return null;
+};
+const match = teamMode
+  ? new TeamDeathmatchMatch({ scoreLimit: 30, timeLimitSeconds: 600 })
+  : new FreeForAllMatch({ scoreLimit: 30, timeLimitSeconds: 300 });
+match.register('player', 'YOU', { human: true, team: teamMode ? 'allies' : undefined });
 
 const touchControls = new TouchControls({
   root: document.getElementById('touch-controls'),
@@ -2426,7 +2438,13 @@ function renderMatchUi() {
   const playerEntry = state.standings.find((entry) => entry.id === 'player');
   const minutes = Math.floor(state.remainingSeconds / 60);
   const seconds = String(state.remainingSeconds % 60).padStart(2, '0');
-  matchStatus.innerHTML = `${playerEntry?.kills ?? 0} / ${state.scoreLimit} &nbsp; <small>${minutes}:${seconds} · #${playerEntry?.place ?? 1}</small>`;
+  if (state.mode === 'tdm') {
+    matchStatus.innerHTML = `ALLIES ${state.teamScores.allies} <small>· ${minutes}:${seconds} · FIRST TO ${state.scoreLimit} ·</small> ${state.teamScores.axis} AXIS`;
+  } else {
+    matchStatus.innerHTML = `${playerEntry?.kills ?? 0} / ${state.scoreLimit} &nbsp; <small>${minutes}:${seconds} · #${playerEntry?.place ?? 1}</small>`;
+  }
+  const scoreboardTitle = document.getElementById('scoreboard-title');
+  if (scoreboardTitle) scoreboardTitle.textContent = state.mode === 'tdm' ? 'TEAM DEATHMATCH' : 'FREE FOR ALL';
 
   killfeed.replaceChildren(...state.feed.map((event) => {
     const row = document.createElement('div');
@@ -2448,7 +2466,9 @@ function renderMatchUi() {
   scoreboardRows.replaceChildren(...state.standings.map((entry) => {
     const row = document.createElement('div');
     row.className = `scoreboard-row${entry.human ? ' player' : ''}`;
-    for (const value of [entry.place, entry.name, entry.kills, entry.deaths]) {
+    if (entry.team) row.dataset.team = entry.team;
+    const score = entry.score ?? entry.kills * 100;
+    for (const value of [entry.place, entry.name, score, entry.kills, entry.deaths]) {
       const cell = document.createElement('span');
       cell.textContent = value;
       row.appendChild(cell);
@@ -2456,9 +2476,16 @@ function renderMatchUi() {
     return row;
   }));
   const winner = state.standings.find((entry) => entry.id === state.winnerId);
-  matchResult.textContent = state.phase === 'ended'
-    ? `${winner?.id === 'player' ? 'VICTORY' : `${winner?.name ?? 'Unknown'} wins`}${touchControls.mode ? '' : ' · press Enter to play again'}`
-    : `First to ${state.scoreLimit} kills${touchControls.mode ? '' : ' · hold Tab for scores'}`;
+  if (state.mode === 'tdm') {
+    const outcome = state.phase === 'ended'
+      ? state.winnerTeam === null ? 'DRAW' : state.winnerTeam === 'allies' ? 'VICTORY' : 'DEFEAT'
+      : `ALLIES ${state.teamScores.allies} — ${state.teamScores.axis} AXIS`;
+    matchResult.textContent = `${outcome}${state.phase === 'ended' && !touchControls.mode ? ' · press Enter to play again' : state.phase !== 'ended' && !touchControls.mode ? ' · hold Tab for scores' : ''}`;
+  } else {
+    matchResult.textContent = state.phase === 'ended'
+      ? `${winner?.id === 'player' ? 'VICTORY' : `${winner?.name ?? 'Unknown'} wins`}${touchControls.mode ? '' : ' · press Enter to play again'}`
+      : `First to ${state.scoreLimit} kills${touchControls.mode ? '' : ' · hold Tab for scores'}`;
+  }
   document.getElementById('touch-restart').hidden = state.phase !== 'ended';
   document.getElementById('touch-score-close').hidden = state.phase === 'ended';
   scoreboard.classList.toggle('visible', scoreboardHeld || state.phase === 'ended');
@@ -2835,7 +2862,7 @@ function menuAction(name) {
 
 function syncMenuButtons() {
   const context = document.getElementById('fe-pause-context');
-  const modeLabel = zombiesMode ? 'ZOMBIES' : gameMode.toUpperCase();
+  const modeLabel = zombiesMode ? 'ZOMBIES' : rulesetLabel;
   const mapLabel = activeMap.name.toUpperCase();
   if (context) context.textContent = `${modeLabel} · ${mapLabel}`;
   const state = match.getState();
@@ -3826,7 +3853,8 @@ async function start() {
         playerHealth,
         weaponEffects,
         hints,
-        count: 6,
+        count: teamMode ? 5 : 6,
+        teamFor: teamMode ? teamForActor : null,
         sightBlocked: (from, to) => grenades?.smokeBlocks(from, to) ?? false,
         onDeath: (victim, source) => {
           const fell = victim.root.position;
@@ -3853,7 +3881,9 @@ async function start() {
     const botNames = ['ADMIRAL', 'CORSAIR', 'DEADEYE', 'MARINER', 'ROGUE', 'VIPER'];
     const registerLoadedBots = () => {
       for (const enemy of enemies?.enemies ?? []) {
-        match.register(`bot-${enemy.index}`, botNames[enemy.index] ?? `BOT ${enemy.index + 1}`);
+        match.register(`bot-${enemy.index}`, botNames[enemy.index] ?? `BOT ${enemy.index + 1}`, {
+          team: teamMode ? enemy.team : undefined,
+        });
       }
     };
     const attachLoadedEnemyProbes = () => {
@@ -4240,11 +4270,14 @@ function tick() {
     clearKeys();
     matchEndedHandled = true;
     // Result music by the player's placing; a shared top score is a draw.
-    const standings = match.getState().standings;
+    const finalState = match.getState();
+    const standings = finalState.standings;
     const leader = standings[0];
     const playerEntry = standings.find((entry) => entry.id === 'player');
     const tied = standings.filter((entry) => entry.kills === leader?.kills).length > 1;
-    const result = playerEntry && leader?.id === 'player' ? (tied ? 'mus_draw' : 'mus_victory') : 'mus_loss';
+    const result = finalState.mode === 'tdm'
+      ? finalState.winnerTeam === null ? 'mus_draw' : finalState.winnerTeam === 'allies' ? 'mus_victory' : 'mus_loss'
+      : playerEntry && leader?.id === 'player' ? (tied ? 'mus_draw' : 'mus_victory') : 'mus_loss';
     music?.play(result, { gain: 0.5 });
     player?.setEnabled(false);
     weapon.setTrigger(false);
