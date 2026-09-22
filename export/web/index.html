@@ -1952,7 +1952,7 @@ function updateControlHints() {
     'WASD move · Shift sprint · Space jump · Ctrl crouch · Shift+C slide · V prone',
     'Left mouse fire · Right mouse aim · R reload · B respawn',
     '1/2 or wheel switch guns · E melee · G frag (hold to cook) · Q smoke',
-    'K cycle camo · N navmesh · V collision · P path · Esc pause',
+    'K cycle camo · Tab scoreboard · Esc pause',
   ];
   frontend.render();
   const prompt = document.querySelector('.fe-prompt');
@@ -3347,7 +3347,7 @@ document.addEventListener('keydown', (event) => {
     navigationVisible = !navigationVisible;
     setDebugVisibility();
   }
-  if (event.code === 'KeyV') {
+  if (event.code === 'F8' && automationPaused) {
     collisionVisible = !collisionVisible;
     setDebugVisibility();
   }
@@ -3697,13 +3697,20 @@ function tick() {
   const controlsActive = canControlPlayer();
   touchControls.setEnabled(controlsActive, ready && locked && !frontend.visible && !scoreboardHeld && match.phase === 'playing');
   const touch = touchControls.input.read();
-  const wantsSprint = Boolean(keys.ShiftLeft || keys.ShiftRight || touch.sprint);
+  const forwardAxis = Number(Boolean(keys.KeyW)) - Number(Boolean(keys.KeyS)) + touch.forward;
+  const strafeAxis = Number(Boolean(keys.KeyD)) - Number(Boolean(keys.KeyA)) + touch.strafe;
+  const movingForward = forwardAxis > 0.55 && Math.abs(strafeAxis) < 0.92;
+  const manualSprint = Boolean(keys.ShiftLeft || keys.ShiftRight || touch.sprint);
+  const wantsSprint = manualSprint || (runtimeSettings.autoSprint === 'ON' && movingForward);
   const wantsProne = Boolean(keys.KeyV || touch.prone);
+  const wantsTacticalSprint = wantsSprint && movingForward && !wantsProne && !touch.crouch &&
+    Math.hypot(forwardAxis, strafeAxis) > 0.88;
   const movement = {
-    forward: Number(Boolean(keys.KeyW)) - Number(Boolean(keys.KeyS)) + touch.forward,
-    strafe: Number(Boolean(keys.KeyD)) - Number(Boolean(keys.KeyA)) + touch.strafe,
+    forward: forwardAxis,
+    strafe: strafeAxis,
     sprint: wantsSprint,
-    crouch: Boolean(keys.ControlLeft || keys.ControlRight || (keys.KeyC && !wantsSprint) || touch.crouch || wantsProne),
+    tacticalSprint: wantsTacticalSprint,
+    crouch: Boolean(keys.ControlLeft || keys.ControlRight || (keys.KeyC && !wantsSprint) || touch.crouch),
     slide: Boolean((keys.KeyC && wantsSprint) || touch.slide),
     prone: wantsProne,
     jump: Boolean(keys.Space || touch.jump),
@@ -3717,7 +3724,11 @@ function tick() {
     aiming: viewmodel.aiming || viewmodel.meleeing || viewmodel.throwing,
   });
   if (player && simulationActive) {
-    player.update(dt, controlsActive ? { ...movement, sprint: sprintState.sprinting } : {});
+    player.update(dt, controlsActive ? {
+      ...movement,
+      sprint: sprintState.sprinting,
+      tacticalSprint: sprintState.sprinting && movement.tacticalSprint,
+    } : {});
     if (player && !viewmodel.scoped && camera.isPerspectiveCamera) { const targetFov = runtimeSettings.fov + (player.state.cameraFovOffset || 0); if (Math.abs(camera.fov-targetFov)>0.01) { camera.fov += (targetFov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix(); } }
   }
   realtimeMatch?.update(dt, player, camera);
