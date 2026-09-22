@@ -2244,6 +2244,7 @@ function selectWeapon(id) {
   lastAdsState = false;
   // Holster the outgoing gun, then bring the new one up; pistols come up fast.
   const pistol = next.definition.class === 'secondary';
+  viewmodel.beginEquip({ duration: pistol ? 0.17 : 0.25 });
   worldAudio?.play(pistol ? worldAudio.resolve(['fly_pistol_down_plr', 'fly_generic_down_plr']) : 'fly_generic_down_plr', { gain: 0.6 });
   setTimeout(() => worldAudio?.play(pistol ? worldAudio.resolve(['fly_pistol_raise_plr', 'fly_generic_raise_plr']) : 'fly_generic_raise_plr', { gain: 0.7 }), pistol ? 150 : 250);
 
@@ -2295,6 +2296,7 @@ function resetPlayerLife() {
   // A new life starts on the primary, as in the game.
   if (activeWeaponId !== loadout.primary && weaponSlots.get(loadout.primary)?.viewmodel.ready) selectWeapon(loadout.primary);
   viewmodel.scene.visible = true;
+  viewmodel.beginEquip({ duration: activeWeaponSlot.definition.class === 'secondary' ? 0.17 : 0.25 });
   viewmodel.setAiming(false);
   deathSource = null;
   document.body.classList.remove('player-dead');
