@@ -762,6 +762,8 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
           <label>SENSITIVITY <input type="range" min="0.4" max="2.5" step=".1" value="1" data-setting-key="sensitivity"><output data-setting-output="sensitivity">1.0×</output></label>
           <label>ADS SENSITIVITY <input type="range" min="0.4" max="2" step=".1" value=".8" data-setting-key="ads"><output data-setting-output="ads">0.8×</output></label>
           <label>INVERT Y <select data-setting-key="invert"><option>OFF</option><option>ON</option></select></label>
+          <label>AIM ASSIST <select data-setting-key="assist"><option>ON</option><option>OFF</option></select></label>
+          <label>GYROSCOPE <select data-setting-key="gyro"><option>OFF</option><option>ON</option></select></label>
           <label>AUTO SPRINT <select data-setting-key="autoSprint"><option>ON</option><option>OFF</option></select></label>
           <label>HAPTICS <select data-setting-key="vibration"><option>ON</option><option>OFF</option></select></label>
           <label>BUTTON LAYOUT <select data-setting-key="layout"><option>STANDARD</option><option>TACTICAL</option><option>LEFT-HANDED</option></select></label>
@@ -770,7 +772,9 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
           <div class="settings-group-head"><b>DISPLAY & PERFORMANCE</b><small>Balanced is recommended for iPhone</small></div>
           <label>QUALITY <select data-setting-key="quality"><option>HIGH</option><option>BALANCED</option><option>PERFORMANCE</option></select></label>
           <label>FPS TARGET <select data-setting-key="fps"><option>30 FPS</option><option>60 FPS</option><option>120 FPS</option><option>UNLIMITED</option></select></label>
-          <p class="lobby-setting-note">Balanced uses adaptive resolution and cinematic post finishing. Performance prioritizes frame pacing while preserving gameplay clarity.</p>
+          <label>LIGHTING DETAIL <select data-setting-key="shadows"><option>HIGH</option><option>LOW</option><option>OFF</option></select></label>
+          <label>CINEMATIC CAMERA <select data-setting-key="blur"><option>OFF</option><option>ON</option></select></label>
+          <p class="lobby-setting-note">Balanced adapts internal resolution to the selected frame target. Lighting Detail controls dynamic light-probe refresh cost.</p>
         </div>
         <div data-setting-panel="audio" hidden>
           <div class="settings-group-head"><b>AUDIO MIX</b><small>Separate gameplay and music buses</small></div>
