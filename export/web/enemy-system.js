@@ -402,6 +402,7 @@ class Enemy {
   constructor(manager, spawn, index) {
     this.manager = manager;
     this.index = index;
+    this.team = manager.teamOf(this);
     this.maxHealth = manager.enemyHealth;
     this.health = this.maxHealth;
     this.dead = false;
@@ -941,6 +942,9 @@ export class EnemyManager {
     random = Math.random,
     // Optional: (from, to) -> true when something (smoke) blocks the view.
     sightBlocked = null,
+    // Optional team resolver. Null means free-for-all; otherwise returns
+    // "allies" / "axis" for the player and each bot.
+    teamFor = null,
   }) {
     if (!scene || !navigation?.crowd || !collisionWorld || !player) {
       throw new Error('EnemyManager requires scene, crowd navigation, collision, and player');
@@ -953,6 +957,7 @@ export class EnemyManager {
       reactionTimeMin, reactionTimeMax, friendlyFireRadius, combatSpacing,
       aimConvergeTime, minAttackRange, searchDuration, respawnDelay,
       botDamageScale, random, sightBlocked,
+      teamFor: typeof teamFor === 'function' ? teamFor : null,
     });
     // Dealt once per match: loadouts, camos and skins by bot index.
     this.loadouts = Array.from({ length: Math.max(0, count) }, () => randomLoadout(this.random));
@@ -1210,7 +1215,7 @@ export class EnemyManager {
   // caller can apply its weapon's range falloff and locational multipliers.
   handlePlayerHit(hit, baseDamage = 34) {
     const data = hit?.object?.userData?.enemyHit;
-    if (!data?.enemy || data.enemy.dead) return null;
+    if (!data?.enemy || data.enemy.dead || !this.isHostile(this.player, data.enemy)) return null;
     const multiplier = data.multiplier ?? 1;
     const region = data.region ?? 'torso';
     const base = typeof baseDamage === 'function' ? baseDamage(region, hit.distance ?? 0) : baseDamage;
@@ -1259,6 +1264,26 @@ export class EnemyManager {
     return target === this.player ? 'player' : `bot-${target.index}`;
   }
 
+  teamOf(actor) {
+    if (!actor) return null;
+    if (this.teamFor) return this.teamFor(actor) ?? null;
+    return actor.team ?? null;
+  }
+
+  sameTeam(a, b) {
+    const left = this.teamOf(a);
+    const right = this.teamOf(b);
+    return Boolean(left && right && left === right);
+  }
+
+  isHostile(a, b) {
+    if (!a || !b || a === b) return false;
+    const left = this.teamOf(a);
+    const right = this.teamOf(b);
+    // No resolver means the legacy free-for-all relationship.
+    return !left || !right ? true : left !== right;
+  }
+
   targetPosition(target, result = new THREE.Vector3()) {
     if (!target || target === this.player) return result.copy(this.player.position);
     return result.copy(target.root.position).addScaledVector(UP, 42);
@@ -1274,7 +1299,7 @@ export class EnemyManager {
     let bestDistance = Infinity;
     const candidates = [this.player, ...this.enemies];
     for (const candidate of candidates) {
-      if (candidate === enemy || this.targetDead(candidate)) continue;
+      if (candidate === enemy || this.targetDead(candidate) || !this.isHostile(enemy, candidate)) continue;
       const distance = enemy.root.position.distanceTo(this.targetPosition(candidate, _target));
       if (distance > this.visionRange || distance >= bestDistance) continue;
       if (!this.canSeeTarget(enemy, candidate, minimumDot)) continue;
@@ -1352,9 +1377,10 @@ export class EnemyManager {
     this.weaponEffects?.playEnemyShot(_origin, enemy.index, enemy.weaponDefinition?.sourceId ?? 'hk416');
     if (!hitPlayer) this.weaponEffects?.playWhizby?.(_origin, end);
     const damage = this.damageFor(enemy, hitActor ? actorDistance : distance);
-    if (hitPlayer) this.playerHealth?.takeDamage(damage, enemy);
-    else if (hitActor) hitActor.takeDamage(damage, null, enemy);
-    return { hitPlayer, hitActor: this.targetId(hitActor), spread, damage };
+    const hostileHit = Boolean(hitActor && this.isHostile(enemy, hitActor));
+    if (hitPlayer && hostileHit) this.playerHealth?.takeDamage(damage, enemy);
+    else if (hitActor && hostileHit) hitActor.takeDamage(damage, null, enemy);
+    return { hitPlayer: hitPlayer && hostileHit, hitActor: this.targetId(hitActor), friendlyBlocked: Boolean(hitActor && !hostileHit), spread, damage: hostileHit ? damage : 0 };
   }
 
   canEnemyFire(candidate) {
@@ -1374,7 +1400,7 @@ export class EnemyManager {
     this.raycaster.ray.set(_origin, _direction);
     const radiusSquared = this.friendlyFireRadius * this.friendlyFireRadius;
     for (const teammate of [this.player, ...this.enemies]) {
-      if (teammate === candidate || teammate === intended || this.targetDead(teammate)) continue;
+      if (teammate === candidate || teammate === intended || this.targetDead(teammate) || !this.sameTeam(candidate, teammate)) continue;
       this.targetPosition(teammate, _friendCenter);
       this.raycaster.ray.closestPointToPoint(_friendCenter, _friendClosest);
       const along = _friendClosest.distanceTo(_origin);
@@ -1387,6 +1413,7 @@ export class EnemyManager {
   isCombatCrowded(candidate) {
     const spacingSquared = this.combatSpacing * this.combatSpacing;
     return this.enemies.some((teammate) => teammate !== candidate && !teammate.dead &&
+      (!this.teamFor || this.sameTeam(candidate, teammate)) &&
       planarDistance(teammate.root.position, candidate.root.position) ** 2 < spacingSquared);
   }
 
@@ -1433,7 +1460,7 @@ export class EnemyManager {
 
   alert(origin, radius, lastSeen) {
     for (const enemy of this.enemies) {
-      if (enemy.dead || enemy.root.position.distanceToSquared(origin) > radius * radius) continue;
+      if (enemy.dead || !this.isHostile(enemy, this.player) || enemy.root.position.distanceToSquared(origin) > radius * radius) continue;
       enemy.lastSeen.copy(lastSeen);
       enemy.currentTarget = this.player;
       enemy.lastSeenTimer = Math.max(enemy.lastSeenTimer, 3.5);
@@ -1458,7 +1485,7 @@ export class EnemyManager {
       let nearest = Infinity;
       let visibleThreats = 0;
       for (const other of [this.player, ...this.enemies]) {
-        if (other === actor || this.targetDead(other)) continue;
+        if (other === actor || this.targetDead(other) || (this.teamFor && actor && !this.isHostile(actor, other))) continue;
         const otherPosition = this.targetPosition(other, _target);
         const distance = candidate.position.distanceTo(otherPosition);
         nearest = Math.min(nearest, distance);
