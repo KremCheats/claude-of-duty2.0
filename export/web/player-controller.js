@@ -598,7 +598,10 @@ export class PlayerController {
           : (this.input.sprint ? this.sprintSpeed : this.moveSpeed);
     _wish.multiplyScalar(speed);
 
-    const acceleration = this.onFloor ? this.groundAcceleration : this.airAcceleration;
+    const hasWish = _wish.lengthSq() > 1e-5;
+    const acceleration = this.onFloor
+      ? (hasWish ? this.groundAcceleration : this.movement.groundDeceleration)
+      : this.airAcceleration;
     const maxChange = acceleration * dt;
     this.velocity.x += clamp(_wish.x - this.velocity.x, -maxChange, maxChange);
     this.velocity.z += clamp(_wish.z - this.velocity.z, -maxChange, maxChange);
