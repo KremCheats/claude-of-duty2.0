@@ -1674,8 +1674,21 @@ function previewWeapon(entry, attachment = 'standard') {
   classPreviewName.textContent = entry.name;
   classPreviewMeta.textContent = `${entry.role ?? entry.class} · ${entry.roundsPerMinute ? `${entry.roundsPerMinute} RPM · ${entry.damage} damage · ${entry.magazineSize} round mag` : 'equipment'} · preview uses ${attachment.replaceAll('_', ' ')}`;
   attachmentList.replaceChildren();
-  const options = entry.roundsPerMinute ? ['standard', 'extended_mag', 'fast_mag'] : [];
-  for (const id of options) { const button = document.createElement('button'); button.type = 'button'; button.className = 'fe-attachment'; button.dataset.attachment = id; button.dataset.selected = String(id === attachment); button.textContent = id.replaceAll('_', ' ').toUpperCase(); button.addEventListener('click', (event) => { event.stopPropagation(); frontend?.chooseAttachment(id); }); attachmentList.appendChild(button); }
+  const options = entry.roundsPerMinute ? LOADOUT_ATTACHMENT_IDS : [];
+  for (const id of options) {
+    const profile = attachmentProfile(id);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'fe-attachment';
+    button.dataset.attachment = id;
+    button.dataset.selected = String(id === attachment);
+    button.innerHTML = '<strong>' + profile.name + '</strong><small>' + profile.detail + '</small>';
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      frontend?.chooseAttachment(id);
+    });
+    attachmentList.appendChild(button);
+  }
 }
 const frontend = new Frontend({
   waitingForInput: blocker.dataset.screen === 'welcome',
@@ -3990,6 +4003,10 @@ async function start() {
       navigation ? '' : 'Navigation failed to load; collision and walking are still available.',
     ]);
     updateControlHints();
+    // Lobby deployments on touch do not need pointer lock. Enter as soon as
+    // the real asset load is complete so iPhone sees one continuous flow:
+    // lobby -> loader -> match. Desktop still waits for a fresh pointer-lock click.
+    if (mapParams.get('autostart') === '1' && touchControls.mode) requestPlay();
   } catch (error) {
     console.error(error);
     frontend.fail(`Unable to start\n${error instanceof Error ? error.message : error}`);
