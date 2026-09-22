@@ -108,7 +108,9 @@ if (lobby) {
     const time = lobby.querySelector('[data-match-time]');
     stopMatchTimer();
     matchTimer = setInterval(() => { if (time) time.textContent = new Date(performance.now() - matchStartedAt).toISOString().slice(14, 19); }, 250);
-    setTimeout(() => { if (!lobby.querySelector('[data-lobby-view="matchmaking"]')?.hidden) showLoading(); }, 2200);
+    // Keep the matchmaking transition readable, but do not put an artificial
+    // multi-second gate in front of the real asset loader.
+    setTimeout(() => { if (!lobby.querySelector('[data-lobby-view="matchmaking"]')?.hidden) showLoading(); }, 650);
   };
   const showLoading = () => {
     stopMatchTimer();
@@ -118,14 +120,13 @@ if (lobby) {
     const copy = screen?.querySelector('[data-loading-copy]');
     if (!screen) return startGame();
     screen.hidden = false;
-    let value = 0;
-    const captions = ['CONNECTING TO TACTICAL NETWORK', 'ALLOCATING FIRETEAM', 'SYNCING WEAPON DATA', 'LOADING COMBAT SHADERS', 'MATCH FOUND // DEPLOYING'];
-    const timer = setInterval(() => {
-      value = Math.min(100, value + 5);
-      if (progress) progress.style.width = `${value}%`;
-      if (copy) copy.textContent = captions[Math.min(captions.length - 1, Math.floor(value / 25))];
-      if (value >= 100) { clearInterval(timer); screen.hidden = true; startGame(); }
-    }, 95);
+    if (progress) progress.style.width = '62%';
+    if (copy) copy.textContent = 'MATCH FOUND // PREPARING DEPLOYMENT';
+    setTimeout(() => {
+      if (progress) progress.style.width = '100%';
+      if (copy) copy.textContent = 'DEPLOYING';
+      setTimeout(() => { screen.hidden = true; startGame(); }, 110);
+    }, 220);
   };
   const startGame = () => {
     const expectedMode = queueMode === 'zombies' ? 'zombies' : 'multiplayer';
@@ -181,6 +182,62 @@ if (lobby) {
       setTimeout(() => { status.dataset.saved = 'false'; }, 1200);
     }
     return saved;
+  };
+
+  const localProfile = () => {
+    try {
+      const value = JSON.parse(safeStorage?.getItem('merk-of-duty.profile.v2') || '{}');
+      return {
+        display_name: value.name || null,
+        level: Number(value.level) || 1,
+        xp: Number(value.xp) || 0,
+        wins: Number(value.wins) || 0,
+      };
+    } catch {
+      return { display_name: null, level: 1, xp: 0, wins: 0 };
+    }
+  };
+  const paintProfile = ({ authenticated = false, displayName = null, profile = null } = {}) => {
+    const settings = loadRuntimeSettings(safeStorage);
+    const fallback = localProfile();
+    const cleanName = String(displayName || profile?.display_name || fallback.display_name || settings.name || 'OPERATIVE').replace(/^@/, '').trim() || 'OPERATIVE';
+    const level = Math.max(1, Number(profile?.level ?? fallback.level) || 1);
+    const xp = Math.max(0, Number(profile?.xp ?? fallback.xp) || 0);
+    const wins = Math.max(0, Number(profile?.wins ?? fallback.wins) || 0);
+    lobby.querySelectorAll('[data-profile-name]').forEach((el) => {
+      const small = el.querySelector('small');
+      const text = el.firstChild;
+      if (text) text.textContent = cleanName.toUpperCase();
+      else el.prepend(document.createTextNode(cleanName.toUpperCase()));
+      if (small) el.appendChild(small);
+    });
+    lobby.querySelectorAll('[data-profile-level]').forEach((el) => { el.textContent = String(level).padStart(2, '0'); });
+    lobby.querySelectorAll('[data-stat-level]').forEach((el) => { el.textContent = String(level); });
+    lobby.querySelectorAll('[data-stat-wins]').forEach((el) => { el.textContent = wins.toLocaleString(); });
+    lobby.querySelectorAll('[data-profile-xp]').forEach((el) => { el.textContent = xp.toLocaleString() + ' XP'; });
+    lobby.querySelectorAll('[data-profile-status]').forEach((el) => { el.textContent = authenticated ? 'CLOUD PROFILE' : 'LOCAL PROFILE'; });
+    lobby.querySelectorAll('[data-stat-sync]').forEach((el) => { el.textContent = authenticated ? 'SYNCED' : 'LOCAL'; });
+    lobby.querySelectorAll('[data-account-state]').forEach((el) => { el.textContent = authenticated ? 'MERK NETWORK' : 'GUEST ONLINE'; });
+    lobby.querySelectorAll('[data-account-nav-label]').forEach((el) => { el.textContent = authenticated ? 'Account / Profile' : 'Account / Sign In'; });
+    lobby.querySelectorAll('[data-party-privacy]').forEach((el) => { el.textContent = settings.privacy; });
+    const rosterName = lobby.querySelector('[data-lobby-view="multiplayer"] .lobby-roster-row span:first-child');
+    if (rosterName) rosterName.textContent = cleanName.toUpperCase();
+  };
+  const refreshAccountProfile = async () => {
+    let authenticated = false;
+    let displayName = null;
+    let profile = null;
+    try {
+      const response = await fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' });
+      const auth = await response.json();
+      authenticated = Boolean(response.ok && auth.authenticated);
+      displayName = auth.displayName || null;
+      if (authenticated) {
+        const profileResponse = await fetch('/api/profile', { credentials: 'same-origin', cache: 'no-store' });
+        if (profileResponse.ok) profile = await profileResponse.json();
+      }
+    } catch { /* local profile remains usable offline */ }
+    paintProfile({ authenticated, displayName, profile });
   };
 
   let weaponPreview = null;
@@ -508,6 +565,10 @@ if (lobby) {
   }));
   document.addEventListener('keydown', (event) => { if (lobby.hidden) return; if (event.key === 'ArrowDown') { event.preventDefault(); setSelected(selected + 1); } if (event.key === 'ArrowUp') { event.preventDefault(); setSelected(selected - 1); } if (event.key === 'Enter') { event.preventDefault(); activate(); } if (event.key === 'Escape') { event.preventDefault(); openView(''); } });
   loadSettings();
+  void refreshAccountProfile();
+  addEventListener('merk:auth-changed', () => void refreshAccountProfile());
+  addEventListener('merk:settings-changed', () => paintProfile());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) void refreshAccountProfile(); });
   setSelected(selected);
   setMap(activeMapId);
   renderMapCards();
