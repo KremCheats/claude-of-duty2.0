@@ -149,7 +149,11 @@ export class TouchControls {
       if (this.dragging.has(event.pointerId)) { event.preventDefault(); const el=this.dragging.get(event.pointerId); el.style.left=`${event.clientX/window.innerWidth*100}%`; el.style.top=`${event.clientY/window.innerHeight*100}%`; el.style.right='auto'; el.style.bottom='auto'; try{localStorage.setItem('merk.hud.'+el.dataset.touch,JSON.stringify({left:el.style.left,top:el.style.top}))}catch{} return; }
       if (!this.input.pointers.has(event.pointerId)) return;
       event.preventDefault();
-      this.input.move(event.pointerId, event.clientX, event.clientY);
+      // Use every high-frequency sample Safari/Chromium gives us instead of
+      // dropping motion between dispatched pointer events. This makes thumb
+      // aim track the finger more tightly without changing sensitivity.
+      const samples = event.getCoalescedEvents?.() ?? [event];
+      for (const sample of samples) this.input.move(event.pointerId, sample.clientX, sample.clientY);
       this.render();
     });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
