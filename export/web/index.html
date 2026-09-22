@@ -2105,7 +2105,13 @@ function loadWeaponSlot(slot) {
         pullPin: THROW_CLIPS.pullPin,
         throw: THROW_CLIPS.throw,
       });
-      await attachHeldProps(slotViewmodel);
+      if (fastBoot) {
+        // Knife/grenade meshes are cosmetic during the first playable frame.
+        // Attach them as soon as they arrive instead of blocking deployment.
+        void attachHeldProps(slotViewmodel).catch((error) => console.warn('Held props unavailable:', error));
+      } else {
+        await attachHeldProps(slotViewmodel);
+      }
       filterTextures(slotViewmodel.scene, graphics.anisotropy, renderer.capabilities.getMaxAnisotropy());
       frontend.setWeaponReady(definition.id, true);
     } catch (error) {
@@ -3465,6 +3471,9 @@ async function start() {
       maxAgents: 32,
       debug: false,
       debugDrawer: {},
+      // Navigation powers bots, not the player's ability to enter the map.
+      // A stalled WASM/network load must not trap iPhone Safari in the loader.
+      timeoutMs: fastBoot ? 9000 : 30000,
     }).catch((error) => {
       console.error('Navigation unavailable:', error);
       return null;
@@ -3653,13 +3662,27 @@ async function start() {
       : Promise.resolve()
     ).finally(() => frontend.stage('enemy'));
 
-    await Promise.all([viewmodelPromise, enemyPromise]);
-    refreshTextureFiltering();
-
     const botNames = ['ADMIRAL', 'CORSAIR', 'DEADEYE', 'MARINER', 'ROGUE', 'VIPER'];
-    for (const enemy of enemies?.enemies ?? []) {
-      match.register(`bot-${enemy.index}`, botNames[enemy.index] ?? `BOT ${enemy.index + 1}`);
+    const registerLoadedBots = () => {
+      for (const enemy of enemies?.enemies ?? []) {
+        match.register(`bot-${enemy.index}`, botNames[enemy.index] ?? `BOT ${enemy.index + 1}`);
+      }
+    };
+
+    if (fastBoot) {
+      // The equipped gun is required to play. Bot bodies are not: let their
+      // models finish streaming after deployment instead of holding mobile at
+      // 90–99% forever on a slow or memory-constrained Safari session.
+      await viewmodelPromise;
+      void enemyPromise.then(() => {
+        registerLoadedBots();
+        renderMatchUi();
+      }).catch((error) => console.warn('Enemy assets unavailable:', error));
+    } else {
+      await Promise.all([viewmodelPromise, enemyPromise]);
+      registerLoadedBots();
     }
+    refreshTextureFiltering();
     renderMatchUi();
 
     // Give each enemy its own probe term before the warm-up below, so the
