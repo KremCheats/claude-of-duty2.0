@@ -98,6 +98,7 @@ export class FreeForAllMatch {
       place: index + 1,
     }));
     return {
+      mode: 'ffa',
       phase: this.phase,
       scoreLimit: this.scoreLimit,
       timeLimitSeconds: this.timeLimitSeconds,
