@@ -41,6 +41,9 @@ export class ViewBob {
     this.bobAmp = 0;
     this.sprintBlend = 0;
     this.airTime = 0;
+    this.wasGrounded = true;
+    this.landingOffset = 0;
+    this.landingPitch = 0;
     this.offset = new THREE.Vector3();
     this.tilt = new THREE.Euler(0, 0, 0, 'YXZ');
     this._savedPosition = new THREE.Vector3();
@@ -60,7 +63,19 @@ export class ViewBob {
     const sprint = this.sprintBlend;
 
     // Same stride clock as the viewmodel bob so the gun and the eye agree.
+    // A real landing is a brief compression, not a camera snap. Capture how
+    // long we were airborne before clearing the timer, then damp the impact.
+    const airborneFor = this.airTime;
+    const landed = grounded && !this.wasGrounded;
+    if (landed && airborneFor > 0.08) {
+      const impact = THREE.MathUtils.clamp(airborneFor / 0.7, 0.18, 1);
+      this.landingOffset -= 0.9 * impact;
+      this.landingPitch += 0.012 * impact;
+    }
     this.airTime = grounded ? 0 : this.airTime + dt;
+    this.wasGrounded = grounded;
+    this.landingOffset = damp(this.landingOffset, 0, 13, dt);
+    this.landingPitch = damp(this.landingPitch, 0, 15, dt);
     const movingGrounded = moving && this.airTime < GROUND_GRACE;
     const speedFactor = THREE.MathUtils.clamp(speed / 300, 0, 1.4);
     this.bobAmp = damp(this.bobAmp, movingGrounded ? speedFactor : 0, 8, dt);
@@ -74,11 +89,11 @@ export class ViewBob {
     this.offset.set(
       stride * lerp(WALK.side, SPRINT.side) * amp,
       // Footfalls dip rather than lift, so the rise is biased downward.
-      (step - 0.5) * lerp(WALK.rise, SPRINT.rise) * amp,
+      (step - 0.5) * lerp(WALK.rise, SPRINT.rise) * amp + this.landingOffset,
       0,
     );
     this.tilt.set(
-      step * lerp(WALK.pitch, SPRINT.pitch) * amp - SPRINT.lean * sprint,
+      step * lerp(WALK.pitch, SPRINT.pitch) * amp - SPRINT.lean * sprint + this.landingPitch,
       0,
       stride * lerp(WALK.roll, SPRINT.roll) * amp,
     );
