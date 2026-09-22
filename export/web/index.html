@@ -3676,5 +3676,13 @@ addEventListener('resize', () => {
 <script type="module" src="./normal-modes.js"></script>
 <script type="module" src="./ranked-ui.js"></script>
 <script type="module" src="./lobby.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch((error) => console.warn('Runtime cache unavailable:', error));
+  }, { once: true });
+}
+</script>
 </body>
 </html>
