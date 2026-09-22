@@ -943,12 +943,12 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
     <button type="button" id="merk-auth-close" class="merk-icon-btn" aria-label="Close">×</button>
     <span class="merk-kicker">MERK NETWORK // ACCOUNT</span>
     <h2 id="merk-auth-title">Sign in</h2>
-    <p id="merk-auth-status">Sign in to sync progression, settings and online identity.</p>
+    <p id="merk-auth-status" role="status" aria-live="polite">Sign in to sync progression, settings and online identity.</p>
     <div id="merk-auth-session" class="merk-auth-session" hidden><strong id="merk-auth-session-name"></strong><small>SECURE SESSION ACTIVE</small></div>
     <label>Email<input id="merk-auth-email" type="email" inputmode="email" autocomplete="email" required maxlength="254"></label>
     <label id="merk-auth-name-label" hidden>Display name<input id="merk-auth-name" type="text" autocomplete="nickname" maxlength="18"></label>
-    <label>Password<input id="merk-auth-password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"><small>12+ characters</small></label>
-    <label id="merk-auth-confirm-label" hidden>Confirm password<input id="merk-auth-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
+    <label>Password<input id="merk-auth-password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"><small>12+ characters</small></label><button type="button" class="merk-auth-reveal" data-auth-reveal="merk-auth-password">SHOW PASSWORD</button>
+    <label id="merk-auth-confirm-label" hidden>Confirm password<input id="merk-auth-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label><button type="button" class="merk-auth-reveal" id="merk-auth-confirm-reveal" data-auth-reveal="merk-auth-confirm" hidden>SHOW CONFIRMATION</button>
     <div class="merk-auth-actions"><button type="submit" class="merk-primary" id="merk-auth-submit">Sign in</button><button type="button" class="merk-secondary" id="merk-auth-toggle">Create account</button></div>
     <button type="button" class="merk-secondary" id="merk-auth-logout" hidden>Sign out</button>
   </form>
@@ -2671,6 +2671,8 @@ function renderAuthMode() {
   authToggle.textContent = signup ? 'I already have an account' : 'Create an account';
   authNameLabel.hidden = !signup || authSessionActive;
   authConfirmLabel.hidden = !signup || authSessionActive;
+  document.getElementById('merk-auth-confirm-reveal').hidden = !signup || authSessionActive;
+  document.querySelector('[data-auth-reveal="merk-auth-password"]').hidden = authSessionActive;
   authSubmit.hidden = authSessionActive;
   authToggle.hidden = authSessionActive;
   authLogout.hidden = !authSessionActive;
@@ -2704,6 +2706,13 @@ async function refreshAuthStatus() {
   }
 }
 authToggle.addEventListener('click', () => { authMode = authMode === 'login' ? 'signup' : 'login'; renderAuthMode(); });
+document.querySelectorAll('[data-auth-reveal]').forEach((button) => button.addEventListener('click', () => {
+  const input = document.getElementById(button.dataset.authReveal);
+  if (!input) return;
+  const reveal = input.type === 'password';
+  input.type = reveal ? 'text' : 'password';
+  button.textContent = reveal ? 'HIDE PASSWORD' : (input.id === 'merk-auth-confirm' ? 'SHOW CONFIRMATION' : 'SHOW PASSWORD');
+}));
 document.getElementById('merk-auth-close').addEventListener('click', () => { authPanel.hidden = true; });
 authLogout.addEventListener('click', async () => {
   authLogout.disabled = true;
@@ -2752,7 +2761,10 @@ authForm.addEventListener('submit', async (event) => {
 });
 renderAuthMode();
 void refreshAuthStatus();
-addEventListener('merk:settings-changed', scheduleCloudSettingsSync);
+addEventListener('merk:settings-changed', (event) => {
+  if (authSessionActive) scheduleCloudSettingsSync();
+  else syncIdentity(event.detail.name, { authenticated:false });
+});
 
 function menuAction(name) {
   if (name === 'restart') {
@@ -2773,7 +2785,8 @@ function menuAction(name) {
   }
   if (name === 'auth') {
     authPanel.hidden = false;
-    document.getElementById('merk-auth-email').focus();
+    if (!authSessionActive) document.getElementById('merk-auth-email').focus();
+    else authLogout.focus();
     return;
   }
   if (name === 'exit') {
