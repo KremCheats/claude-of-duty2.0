@@ -259,6 +259,7 @@ export class Viewmodel {
     this.muzzleFlash = null;
     this.muzzleLight = null;
     this.flashTime = 0;
+    this.shotKick = 0;
 
     this.mixer = null;
     this.clips = new Map();
@@ -1034,6 +1035,7 @@ export class Viewmodel {
       action.reset().setEffectiveWeight(1).fadeIn(0.005).play();
     }
     this.flashTime = 0.045;
+    this.shotKick = Math.min(1.5, this.shotKick + (aiming ? 0.72 : 1));
     if (this.muzzleFlash) {
       this.muzzleFlash.material.rotation = Math.random() * Math.PI;
       this.muzzleFlash.material.opacity = 1;
@@ -1178,6 +1180,8 @@ export class Viewmodel {
     const bobPitch = Math.sin(this.bobTime * 2) * SPRINT_BOB.pitch * this.bobAmp * sprint;
 
     const aimScale = 1 - this.aimBlend * 0.88;
+    this.shotKick = damp(this.shotKick, 0, 20, dt);
+    const proceduralKick = this.shotKick * (1 - this.aimBlend * 0.45);
     // Sprinting tightens the grip, so look lag eases off while the stride
     // bob carries on at full strength.
     const lagScale = aimScale * (1 - sprint * 0.6);
@@ -1187,7 +1191,7 @@ export class Viewmodel {
       SPRINT_POSE.roll * sprint,
     );
     this.swayGroup.rotation.set(
-      this.swayRot.x * lagScale + this.sprintEuler.x + bobPitch,
+      this.swayRot.x * lagScale + this.sprintEuler.x + bobPitch - proceduralKick * 0.012,
       this.swayRot.y * lagScale + this.sprintEuler.y,
       this.swayRot.y * -0.4 * lagScale + this.sprintEuler.z + bobRoll,
     );
@@ -1203,7 +1207,7 @@ export class Viewmodel {
     this.swayGroup.position.set(
       this.swayPos.x * lagScale + bobX * aimScale + SPRINT_POSE.x * sprint + this.pivotShift.x,
       this.swayPos.y * lagScale + bobY * aimScale + SPRINT_POSE.y * sprint + this.pivotShift.y,
-      SPRINT_POSE.z * sprint + this.pivotShift.z,
+      SPRINT_POSE.z * sprint + this.pivotShift.z + proceduralKick * 0.72,
     );
 
     this.adsGroup.position.copy(this.adsPos).multiplyScalar(this.aimBlend);
