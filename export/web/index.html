@@ -834,7 +834,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
             <button type="button" class="fe-btn pause-primary" data-action="resume">Resume operation</button>
             <button type="button" class="fe-btn" data-action="class">Create a class</button>
             <button type="button" class="fe-btn" data-action="settings">Settings</button>
-            <button type="button" class="fe-btn" data-action="auth">Account / Social</button>
+            <button type="button" class="fe-btn" data-action="auth">Account / Network</button>
             <button type="button" class="fe-btn" data-action="respawn">Respawn</button>
             <button type="button" class="fe-btn pause-danger" data-action="exit">Leave match</button>
             <button type="button" class="fe-btn pause-debug" data-action="navmesh" hidden>Navmesh overlay</button>
@@ -2653,7 +2653,25 @@ function menuAction(name) {
 
 function syncMenuButtons() {
   const context = document.getElementById('fe-pause-context');
-  if (context) context.textContent = zombiesMode ? `ZOMBIES · ${activeMap.name.toUpperCase()}` : `${gameMode.toUpperCase()} · ${activeMap.name.toUpperCase()}`;
+  const modeLabel = zombiesMode ? 'ZOMBIES' : gameMode.toUpperCase();
+  const mapLabel = activeMap.name.toUpperCase();
+  if (context) context.textContent = `${modeLabel} · ${mapLabel}`;
+  const state = match.getState();
+  const playerEntry = state.standings.find((entry) => entry.id === 'player');
+  const pauseMap = document.getElementById('pause-map-name');
+  const pauseMode = document.getElementById('pause-mode-name');
+  const pauseWeapon = document.getElementById('pause-weapon-name');
+  const pauseAmmo = document.getElementById('pause-ammo');
+  const pauseHealth = document.getElementById('pause-health');
+  const pauseScore = document.getElementById('pause-score');
+  if (pauseMap) pauseMap.textContent = mapLabel;
+  if (pauseMode) pauseMode.textContent = modeLabel;
+  if (pauseWeapon) pauseWeapon.textContent = activeWeaponSlot?.definition?.name?.toUpperCase() || 'PRIMARY';
+  if (pauseAmmo) pauseAmmo.textContent = weapon ? `${weapon.magazine} / ${weapon.reserveAmmo}` : '—';
+  if (pauseHealth) pauseHealth.textContent = String(Math.max(0, Math.round(playerHealth?.health ?? 100)));
+  if (pauseScore) pauseScore.textContent = zombiesMode
+    ? `${zombies?.hudState?.().points ?? 0} PTS`
+    : `${playerEntry?.kills ?? 0} K · ${playerEntry?.deaths ?? 0} D`;
   for (const button of menuButtons) {
     const action = button.dataset.action;
     if (action === 'navmesh') button.dataset.on = String(navigationVisible);
