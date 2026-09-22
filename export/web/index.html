@@ -724,7 +724,71 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
   <section class="lobby-view" data-lobby-view="campaign" hidden><div class="lobby-dialog"><h2>CAMPAIGN</h2><p>SOLO OPERATIONS ARE BEING PREPARED.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button></div></div></section>
   <section class="lobby-view" data-lobby-view="custom" hidden><div class="lobby-dialog"><h2>CUSTOM GAMES</h2><p>SET RULES, INVITE YOUR FIRETEAM, AND HOST A PRIVATE MATCH.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="start">HOST GAME</button></div></div></section>
   <section class="lobby-view" data-lobby-view="store" hidden><div class="lobby-dialog"><h2>STORE</h2><p>OPERATIVE CONTENT // COMING SOON.</p><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button></div></div></section>
-  <section class="lobby-view" data-lobby-view="options" hidden><div class="lobby-dialog lobby-dialog-wide"><h2>SETTINGS</h2><p>OPERATIVE CONFIGURATION // CHANGES SAVE LOCALLY</p><div class="lobby-settings-layout"><div class="lobby-settings-tabs"><button class="lobby-setting-tab" data-setting-tab="controls" data-active="true">CONTROLS</button><button class="lobby-setting-tab" data-setting-tab="graphics">GRAPHICS</button><button class="lobby-setting-tab" data-setting-tab="audio">AUDIO</button><button class="lobby-setting-tab" data-setting-tab="gameplay">GAMEPLAY</button><button class="lobby-setting-tab" data-setting-tab="language">LANGUAGE</button><button class="lobby-setting-tab" data-setting-tab="account">ACCOUNT</button></div><div class="lobby-settings-panel"><div data-setting-panel="controls"><label>SENSITIVITY <input type="range" min="0.5" max="2" step=".1" value="1" data-setting-key="sensitivity"><output data-setting-output="sensitivity">1.0×</output></label><label>ADS SENSITIVITY <input type="range" min="0.5" max="2" step=".1" value=".8" data-setting-key="ads"><output data-setting-output="ads">0.8×</output></label><label>INVERT Y <select data-setting-key="invert"><option>OFF</option><option>ON</option></select></label><label>AIM ASSIST <select data-setting-key="assist"><option>ON</option><option>OFF</option></select></label><label>BUTTON LAYOUT <select data-setting-key="layout"><option>STANDARD</option><option>TACTICAL</option><option>LEFT-HANDED</option></select></label></div><div data-setting-panel="graphics" hidden><label>QUALITY <select data-setting-key="quality"><option>HIGH</option><option>BALANCED</option><option>PERFORMANCE</option></select></label><label>FPS TARGET <select data-setting-key="fps"><option>60 FPS</option><option>30 FPS</option><option>UNLIMITED</option></select></label><label>SHADOWS <select data-setting-key="shadows"><option>HIGH</option><option>LOW</option><option>OFF</option></select></label><label>MOTION BLUR <select data-setting-key="blur"><option>OFF</option><option>ON</option></select></label></div><div data-setting-panel="audio" hidden><label>MASTER VOLUME <input type="range" min="0" max="100" value="80" data-setting-key="master"></label><label>MUSIC <input type="range" min="0" max="100" value="55" data-setting-key="music"></label><label>EFFECTS <input type="range" min="0" max="100" value="80" data-setting-key="effects"></label><label>VOICE CHAT <select data-setting-key="voice"><option>ON</option><option>OFF</option></select></label></div><div data-setting-panel="gameplay" hidden><label>HUD <select data-setting-key="hud"><option>STANDARD</option><option>MINIMAL</option></select></label><label>CROSSHAIR <select data-setting-key="crosshair"><option>DEFAULT</option><option>CLASSIC</option><option>DOT</option></select></label><label>DAMAGE INDICATORS <select data-setting-key="damage"><option>ON</option><option>OFF</option></select></label><label>FIELD OF VIEW <input type="range" min="70" max="120" value="90" data-setting-key="fov"><output data-setting-output="fov">90°</output></label></div><div data-setting-panel="language" hidden><label>LANGUAGE <select data-setting-key="language"><option>ENGLISH</option><option>ESPAÑOL</option><option>FRANÇAIS</option></select></label><p class="lobby-setting-note">VOICE and text language changes apply after the next deployment.</p></div><div data-setting-panel="account" hidden><label>OPERATIVE NAME <input value="KREMITYSS" data-setting-key="name"></label><label>PRIVACY <select data-setting-key="privacy"><option>FRIENDS ONLY</option><option>INVITE ONLY</option><option>OPEN</option></select></label><p class="lobby-setting-note">Account services remain connected to the existing secure profile endpoints.</p></div></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="save-settings">SAVE SETTINGS</button></div></div></section>
+  <section class="lobby-view" data-lobby-view="options" hidden>
+  <div class="lobby-dialog lobby-dialog-wide lobby-settings-dialog">
+    <div class="lobby-dialog-top">
+      <div><span class="lobby-kicker">SYSTEM // CONFIGURATION</span><h2>SETTINGS</h2><p>ONE PROFILE · MENU AND MATCH SETTINGS STAY IN SYNC</p></div>
+      <div class="settings-state" data-settings-status data-saved="true">SETTINGS READY</div>
+    </div>
+    <div class="lobby-settings-layout">
+      <div class="lobby-settings-tabs">
+        <button class="lobby-setting-tab" data-setting-tab="controls" data-active="true">CONTROLS</button>
+        <button class="lobby-setting-tab" data-setting-tab="graphics">GRAPHICS</button>
+        <button class="lobby-setting-tab" data-setting-tab="audio">AUDIO</button>
+        <button class="lobby-setting-tab" data-setting-tab="gameplay">INTERFACE</button>
+        <button class="lobby-setting-tab" data-setting-tab="language">LANGUAGE</button>
+        <button class="lobby-setting-tab" data-setting-tab="account">ACCOUNT</button>
+      </div>
+      <div class="lobby-settings-panel">
+        <div data-setting-panel="controls">
+          <div class="settings-group-head"><b>AIM & MOVEMENT</b><small>Applied immediately after save</small></div>
+          <label>SENSITIVITY <input type="range" min="0.4" max="2.5" step=".1" value="1" data-setting-key="sensitivity"><output data-setting-output="sensitivity">1.0×</output></label>
+          <label>ADS SENSITIVITY <input type="range" min="0.4" max="2" step=".1" value=".8" data-setting-key="ads"><output data-setting-output="ads">0.8×</output></label>
+          <label>INVERT Y <select data-setting-key="invert"><option>OFF</option><option>ON</option></select></label>
+          <label>AIM ASSIST <select data-setting-key="assist"><option>ON</option><option>OFF</option></select></label>
+          <label>AUTO SPRINT <select data-setting-key="autoSprint"><option>ON</option><option>OFF</option></select></label>
+          <label>GYROSCOPE <select data-setting-key="gyro"><option>OFF</option><option>ON</option></select></label>
+          <label>HAPTICS <select data-setting-key="vibration"><option>ON</option><option>OFF</option></select></label>
+          <label>BUTTON LAYOUT <select data-setting-key="layout"><option>STANDARD</option><option>TACTICAL</option><option>LEFT-HANDED</option></select></label>
+        </div>
+        <div data-setting-panel="graphics" hidden>
+          <div class="settings-group-head"><b>DISPLAY & PERFORMANCE</b><small>Balanced is recommended for iPhone</small></div>
+          <label>QUALITY <select data-setting-key="quality"><option>HIGH</option><option>BALANCED</option><option>PERFORMANCE</option></select></label>
+          <label>FPS TARGET <select data-setting-key="fps"><option>30 FPS</option><option>60 FPS</option><option>120 FPS</option><option>UNLIMITED</option></select></label>
+          <label>SHADOW DETAIL <select data-setting-key="shadows"><option>HIGH</option><option>LOW</option><option>OFF</option></select></label>
+          <label>MOTION RESPONSE <select data-setting-key="blur"><option>OFF</option><option>ON</option></select></label>
+          <p class="lobby-setting-note">AUTO resolution scales to hold frame pacing before reducing scene quality.</p>
+        </div>
+        <div data-setting-panel="audio" hidden>
+          <div class="settings-group-head"><b>AUDIO MIX</b><small>Separate gameplay and music buses</small></div>
+          <label>MASTER VOLUME <input type="range" min="0" max="100" value="80" data-setting-key="master"><output data-setting-output="master">80%</output></label>
+          <label>MUSIC <input type="range" min="0" max="100" value="55" data-setting-key="music"><output data-setting-output="music">55%</output></label>
+          <label>EFFECTS <input type="range" min="0" max="100" value="80" data-setting-key="effects"><output data-setting-output="effects">80%</output></label>
+          <label>VOICE CHAT <select data-setting-key="voice"><option>OFF</option><option>ON</option></select></label>
+        </div>
+        <div data-setting-panel="gameplay" hidden>
+          <div class="settings-group-head"><b>HUD & CAMERA</b><small>Competitive readability controls</small></div>
+          <label>HUD <select data-setting-key="hud"><option>STANDARD</option><option>MINIMAL</option></select></label>
+          <label>CROSSHAIR <select data-setting-key="crosshair"><option>DEFAULT</option><option>CLASSIC</option><option>DOT</option></select></label>
+          <label>DAMAGE INDICATORS <select data-setting-key="damage"><option>ON</option><option>OFF</option></select></label>
+          <label>FIELD OF VIEW <input type="range" min="70" max="120" value="90" data-setting-key="fov"><output data-setting-output="fov">90°</output></label>
+        </div>
+        <div data-setting-panel="language" hidden>
+          <div class="settings-group-head"><b>LANGUAGE</b><small>Menu language preference</small></div>
+          <label>LANGUAGE <select data-setting-key="language"><option>ENGLISH</option><option>ESPAÑOL</option><option>FRANÇAIS</option></select></label>
+          <p class="lobby-setting-note">Gameplay terminology remains English where localized assets are unavailable.</p>
+        </div>
+        <div data-setting-panel="account" hidden>
+          <div class="settings-group-head"><b>PROFILE</b><small>Synced when signed in</small></div>
+          <label>OPERATIVE NAME <input value="OPERATIVE" maxlength="24" data-setting-key="name"></label>
+          <label>PARTY PRIVACY <select data-setting-key="privacy"><option>FRIENDS ONLY</option><option>INVITE ONLY</option><option>OPEN</option></select></label>
+          <button type="button" class="lobby-inline-account" data-open-auth>OPEN ACCOUNT CENTER</button>
+        </div>
+      </div>
+    </div>
+    <div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">CANCEL</button><button class="lobby-action" data-lobby-action="save-settings">APPLY & SAVE</button></div>
+  </div>
+</section>
 </div>
 <div id="blocker" data-screen="welcome">
   <div class="fe-layer fe-backdrop"></div>
