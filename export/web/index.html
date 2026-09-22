@@ -3215,7 +3215,10 @@ function onGrenadeExplode(grenade, hits) {
   if (!player) return;
   const at = grenade.position;
   for (const { actor, damage } of hits) {
-    const applied = actor.enemy?.takeDamage(damage, null, grenade.owner === player ? player : null) ?? 0;
+    const target = actor.enemy ?? null;
+    const source = grenade.owner === player ? player : grenade.owner;
+    if (teamMode && source && target && enemies && !enemies.isHostile(source, target)) continue;
+    const applied = target?.takeDamage(damage, null, grenade.owner === player ? player : source) ?? 0;
     if (applied > 0 && grenade.owner === player) {
       showHitmarker(actor.enemy.dead ? 'kill' : 'torso');
       weaponEffects.playHitmarker({ region: 'torso', killed: actor.enemy.dead });
