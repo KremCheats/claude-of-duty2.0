@@ -3563,9 +3563,11 @@ async function start() {
     void weaponEffects.loadAudio().catch((error) => console.warn('Weapon audio unavailable:', error));
     const navPromise = loadNavigation({
       source: activeMapFiles.navmesh,
-      maxAgents: 32,
+      maxAgents: zombiesMode ? 32 : (fastBoot ? 10 : 32),
       debug: false,
-      debugDrawer: {},
+      // Building a debug-drawer mesh duplicates navmesh geometry and is pure
+      // startup overhead on phones. Keep it available on desktop tooling only.
+      debugDrawer: fastBoot ? false : {},
       // Navigation powers bots, not the player's ability to enter the map.
       // A stalled WASM/network load must not trap iPhone Safari in the loader.
       timeoutMs: fastBoot ? 9000 : 30000,
