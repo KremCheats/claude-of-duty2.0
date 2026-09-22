@@ -1014,6 +1014,8 @@ const weaponSlots = new Map(Object.values(WEAPON_DEFINITIONS).map((definition) =
 }));
 // The equipped class: a primary, a secondary, a lethal and a tactical. The
 // wheel and the number keys move between the two guns; G and Q throw.
+const CLASS_ATTACHMENT_IDS = new Set(['standard', 'extended_mag', 'fast_mag']);
+const normalizeClassAttachment = (value) => CLASS_ATTACHMENT_IDS.has(value) ? value : 'standard';
 const persistedLoadout = (() => {
   try {
     const saved = JSON.parse(mapStorage?.getItem('merk-of-duty.active-loadout.v2') || 'null');
@@ -1023,15 +1025,33 @@ const persistedLoadout = (() => {
     return {
       ...(primary?.class === 'primary' ? { primary: primary.id } : {}),
       ...(secondary?.class === 'secondary' ? { secondary: secondary.id } : {}),
+      attachments: {
+        primary: normalizeClassAttachment(saved.attachments?.primary),
+        secondary: normalizeClassAttachment(saved.attachments?.secondary),
+      },
     };
   } catch {
     return {};
   }
 })();
-const loadout = { ...DEFAULT_LOADOUT, ...persistedLoadout };
+const { attachments: persistedAttachments = {}, ...persistedWeapons } = persistedLoadout;
+const loadout = { ...DEFAULT_LOADOUT, ...persistedWeapons };
+const loadoutAttachments = {
+  primary: normalizeClassAttachment(persistedAttachments.primary),
+  secondary: normalizeClassAttachment(persistedAttachments.secondary),
+};
+const attachmentForWeapon = (id) => {
+  const weaponClass = findWeapon(id)?.class;
+  if (weaponClass !== 'primary' && weaponClass !== 'secondary') return 'standard';
+  return loadout[weaponClass] === id ? loadoutAttachments[weaponClass] : 'standard';
+};
 function persistActiveLoadout() {
   try {
-    const active = { primary: loadout.primary, secondary: loadout.secondary };
+    const active = {
+      primary: loadout.primary,
+      secondary: loadout.secondary,
+      attachments: { ...loadoutAttachments },
+    };
     mapStorage?.setItem('merk-of-duty.active-loadout.v2', JSON.stringify(active));
     mapStorage?.setItem('merk-of-duty.loadout-primary.v1', loadout.primary);
     mapStorage?.setItem('merk-of-duty.loadout-secondary.v1', loadout.secondary);
@@ -1044,11 +1064,29 @@ function persistActiveLoadout() {
       return {
         primary: primary?.class === 'primary' ? primary.id : DEFAULT_LOADOUT.primary,
         secondary: secondary?.class === 'secondary' ? secondary.id : DEFAULT_LOADOUT.secondary,
+        attachments: {
+          primary: normalizeClassAttachment(entry.attachments?.primary),
+          secondary: normalizeClassAttachment(entry.attachments?.secondary),
+        },
       };
     });
     normalized[index] = active;
     mapStorage?.setItem('merk-of-duty.loadouts.v2', JSON.stringify(normalized));
   } catch { /* local persistence is optional */ }
+}
+function applyAttachmentEffects({ refill = false } = {}) {
+  for (const weaponClass of ['primary', 'secondary']) {
+    const selectedId = loadout[weaponClass];
+    const slot = weaponSlots.get(selectedId);
+    if (!slot?.controller) continue;
+    const baseMagazine = Math.max(1, Number(slot.definition.magazineSize) || 1);
+    const magazineSize = loadoutAttachments[weaponClass] === 'extended_mag'
+      ? Math.ceil(baseMagazine * 1.5)
+      : baseMagazine;
+    slot.controller.magazineSize = magazineSize;
+    if (refill) slot.controller.magazine = magazineSize;
+    else slot.controller.magazine = Math.min(slot.controller.magazine, magazineSize);
+  }
 }
 let activeWeaponId = loadout.primary;
 let activeWeaponSlot = weaponSlots.get(activeWeaponId);
