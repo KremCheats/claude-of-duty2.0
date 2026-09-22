@@ -13,6 +13,7 @@ export class GraphicsSettings {
     this.mobile = mobile;
     this.preset = Object.hasOwn(PRESETS, preset) ? preset : 'auto';
     this.autoRatio = PRESETS.auto.ratio;
+    this.targetFps = 60;
     this.width = this.height = this.dpr = 1;
     this.maxSize = 16384;
     this.resetTiming();
@@ -24,6 +25,13 @@ export class GraphicsSettings {
     this.autoRatio = PRESETS.auto.ratio;
     this.resetTiming();
     return true;
+  }
+
+  setTargetFps(value = 60) {
+    const fps = Number(value);
+    this.targetFps = Number.isFinite(fps) && fps > 0 ? clamp(fps, 30, 120) : 60;
+    this.resetTiming();
+    return this.targetFps;
   }
 
   setViewport(width, height, dpr, maxSize = 16384) {
@@ -69,16 +77,19 @@ export class GraphicsSettings {
     if (this.elapsed < 1000) return false;
     const average = this.elapsed / this.frames;
     this.elapsed = this.frames = 0;
-    this.slowWindows = average > 22 ? this.slowWindows + 1 : 0;
-    this.fastWindows = average < 17.5 ? this.fastWindows + 1 : 0;
+    const targetInterval = 1000 / this.targetFps;
+    const slowThreshold = targetInterval * 1.32;
+    const fastThreshold = targetInterval * 1.06;
+    this.slowWindows = average > slowThreshold ? this.slowWindows + 1 : 0;
+    this.fastWindows = average < fastThreshold ? this.fastWindows + 1 : 0;
     const before = this.pixelRatio;
     if (this.slowWindows >= 2) {
       // If a tablet's pixel budget already limits the scale, lower from its
       // effective resolution instead of spending steps above that ceiling.
-      this.autoRatio = Math.max(0.75, Math.min(this.autoRatio, before) - 0.125);
+      this.autoRatio = Math.max(0.65, Math.min(this.autoRatio, before) - 0.125);
       this.slowWindows = this.fastWindows = 0;
     } else if (this.fastWindows >= 6) {
-      this.autoRatio = clamp(this.autoRatio + 0.125, 0.75, PRESETS.auto.ratio);
+      this.autoRatio = clamp(this.autoRatio + 0.125, 0.65, PRESETS.auto.ratio);
       this.slowWindows = this.fastWindows = 0;
     }
     return Math.abs(before - this.pixelRatio) > 0.001;
@@ -86,7 +97,7 @@ export class GraphicsSettings {
 
   getState() {
     return { preset: this.preset, mobile: this.mobile, adaptive: this.mobile && this.preset === 'auto',
-      pixelRatio: Number(this.pixelRatio.toFixed(3)), anisotropy: this.anisotropy };
+      targetFps: this.targetFps, pixelRatio: Number(this.pixelRatio.toFixed(3)), anisotropy: this.anisotropy };
   }
 }
 
