@@ -58,7 +58,7 @@ export function normalizeSettings(input = {}) {
     damage: choice(input.damage, ['ON','OFF'], DEFAULT_SETTINGS.damage),
     fov: clamp(input.fov, 70, 120, DEFAULT_SETTINGS.fov),
     language: choice(input.language, ['ENGLISH','ESPAÑOL','FRANÇAIS'], DEFAULT_SETTINGS.language),
-    name: String(input.name || DEFAULT_SETTINGS.name).trim().slice(0, 24) || DEFAULT_SETTINGS.name,
+    name: String(input.name || DEFAULT_SETTINGS.name).trim().slice(0, 18) || DEFAULT_SETTINGS.name,
     privacy: choice(input.privacy, ['FRIENDS ONLY','INVITE ONLY','OPEN'], DEFAULT_SETTINGS.privacy),
   };
 }
