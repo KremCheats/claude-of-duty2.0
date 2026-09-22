@@ -2376,35 +2376,181 @@ function updateMedalPopups() {
 
 // Pause-menu buttons drive the same state the keyboard shortcuts do, so the
 // overlays stay in sync however they were toggled.
+const settingsPanel = document.getElementById('merk-runtime-settings');
+const settingsForm = document.getElementById('merk-runtime-settings-form');
+const settingsFields = {
+  sensitivity: document.getElementById('merk-settings-sensitivity'),
+  ads: document.getElementById('merk-settings-ads'),
+  fov: document.getElementById('merk-settings-fov'),
+  quality: document.getElementById('merk-settings-quality'),
+  fps: document.getElementById('merk-settings-fps'),
+  crosshair: document.getElementById('merk-settings-crosshair'),
+  hud: document.getElementById('merk-settings-hud'),
+  damage: document.getElementById('merk-settings-damage'),
+  invert: document.getElementById('merk-settings-invert'),
+  autoSprint: document.getElementById('merk-settings-autosprint'),
+  vibration: document.getElementById('merk-settings-vibration'),
+  layout: document.getElementById('merk-settings-layout'),
+  master: document.getElementById('merk-settings-master'),
+  effects: document.getElementById('merk-settings-effects'),
+  music: document.getElementById('merk-settings-music'),
+};
+const settingsStatus = document.getElementById('merk-settings-status');
+function renderRuntimeSettingsForm() {
+  for (const [key, input] of Object.entries(settingsFields)) if (input) input.value = runtimeSettings[key];
+  document.getElementById('merk-settings-sensitivity-out').textContent = `${Number(runtimeSettings.sensitivity).toFixed(1)}×`;
+  document.getElementById('merk-settings-ads-out').textContent = `${Number(runtimeSettings.ads).toFixed(1)}×`;
+  document.getElementById('merk-settings-fov-out').textContent = `${runtimeSettings.fov}°`;
+  document.getElementById('merk-settings-master-out').textContent = `${runtimeSettings.master}%`;
+  document.getElementById('merk-settings-effects-out').textContent = `${runtimeSettings.effects}%`;
+  document.getElementById('merk-settings-music-out').textContent = `${runtimeSettings.music}%`;
+}
+function readRuntimeSettingsForm() {
+  return {
+    ...runtimeSettings,
+    sensitivity: Number(settingsFields.sensitivity.value),
+    ads: Number(settingsFields.ads.value),
+    fov: Number(settingsFields.fov.value),
+    quality: settingsFields.quality.value,
+    fps: settingsFields.fps.value,
+    crosshair: settingsFields.crosshair.value,
+    hud: settingsFields.hud.value,
+    damage: settingsFields.damage.value,
+    invert: settingsFields.invert.value,
+    autoSprint: settingsFields.autoSprint.value,
+    vibration: settingsFields.vibration.value,
+    layout: settingsFields.layout.value,
+    master: Number(settingsFields.master.value),
+    effects: Number(settingsFields.effects.value),
+    music: Number(settingsFields.music.value),
+  };
+}
+function openRuntimeSettings() {
+  renderRuntimeSettingsForm();
+  settingsStatus.textContent = 'CHANGES APPLY IMMEDIATELY';
+  settingsPanel.hidden = false;
+}
+function closeRuntimeSettings() { settingsPanel.hidden = true; }
+for (const input of Object.values(settingsFields)) {
+  input?.addEventListener('input', () => {
+    runtimeSettings = saveRuntimeSettings(readRuntimeSettingsForm(), mapStorage);
+    renderRuntimeSettingsForm();
+    settingsStatus.textContent = 'LIVE PREVIEW ACTIVE';
+  });
+}
+settingsForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  runtimeSettings = saveRuntimeSettings(readRuntimeSettingsForm(), mapStorage);
+  closeRuntimeSettings();
+});
+document.getElementById('merk-settings-close')?.addEventListener('click', closeRuntimeSettings);
+document.getElementById('merk-settings-reset')?.addEventListener('click', () => {
+  runtimeSettings = saveRuntimeSettings({}, mapStorage);
+  renderRuntimeSettingsForm();
+  settingsStatus.textContent = 'DEFAULTS RESTORED';
+});
+
 const authPanel = document.getElementById('merk-auth-panel');
 const authForm = document.getElementById('merk-auth-form');
 const authTitle = document.getElementById('merk-auth-title');
 const authStatus = document.getElementById('merk-auth-status');
 const authNameLabel = document.getElementById('merk-auth-name-label');
+const authConfirmLabel = document.getElementById('merk-auth-confirm-label');
+const authConfirm = document.getElementById('merk-auth-confirm');
+const authSession = document.getElementById('merk-auth-session');
+const authSessionName = document.getElementById('merk-auth-session-name');
+const authLogout = document.getElementById('merk-auth-logout');
 const authSubmit = document.getElementById('merk-auth-submit');
 const authToggle = document.getElementById('merk-auth-toggle');
 let authMode = 'login';
+let authSessionActive = false;
+function syncIdentity(name) {
+  const clean = String(name || '').replace(/^@/, '');
+  if (!clean) return;
+  document.querySelectorAll('.lobby-username').forEach((el) => {
+    const small = el.querySelector('small');
+    el.firstChild.textContent = clean.toUpperCase();
+    if (small) el.appendChild(small);
+  });
+  const playerLine = document.getElementById('merk-player-line');
+  if (playerLine) playerLine.textContent = clean.toUpperCase();
+}
 function renderAuthMode() {
   const signup = authMode === 'signup';
-  authTitle.textContent = signup ? 'Create account' : 'Sign in';
+  authTitle.textContent = authSessionActive ? 'Account connected' : signup ? 'Create account' : 'Sign in';
   authSubmit.textContent = signup ? 'Create account' : 'Sign in';
   authToggle.textContent = signup ? 'I already have an account' : 'Create an account';
-  authNameLabel.hidden = !signup;
+  authNameLabel.hidden = !signup || authSessionActive;
+  authConfirmLabel.hidden = !signup || authSessionActive;
+  authSubmit.hidden = authSessionActive;
+  authToggle.hidden = authSessionActive;
+  authLogout.hidden = !authSessionActive;
+  authForm.querySelectorAll('label').forEach((label) => {
+    if (label === authNameLabel || label === authConfirmLabel) return;
+    if (label.querySelector('#merk-auth-email') || label.querySelector('#merk-auth-password')) label.hidden = authSessionActive;
+  });
   document.getElementById('merk-auth-password').autocomplete = signup ? 'new-password' : 'current-password';
 }
 async function refreshAuthStatus() {
-  try { const response = await fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' }); const data = await response.json(); if (data.authenticated) authStatus.textContent = `${data.displayName} signed in. Your profile is protected by a secure session.`; } catch { /* offline play remains available */ }
+  try {
+    const response = await fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' });
+    const data = await response.json();
+    authSessionActive = Boolean(data.authenticated);
+    authSession.hidden = !authSessionActive;
+    if (authSessionActive) {
+      authSessionName.textContent = data.displayName;
+      authStatus.textContent = 'Progression and profile sync are active on this device.';
+      syncIdentity(data.displayName);
+    } else {
+      authStatus.textContent = 'Sign in to sync progression, settings and online identity.';
+    }
+    renderAuthMode();
+  } catch {
+    authStatus.textContent = 'Account service is offline. Guest play is still available.';
+  }
 }
 authToggle.addEventListener('click', () => { authMode = authMode === 'login' ? 'signup' : 'login'; renderAuthMode(); });
 document.getElementById('merk-auth-close').addEventListener('click', () => { authPanel.hidden = true; });
+authLogout.addEventListener('click', async () => {
+  authLogout.disabled = true;
+  try {
+    await fetch('/api/auth', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json'}, body:JSON.stringify({ action:'logout' }) });
+    authSessionActive = false;
+    authForm.reset();
+    authStatus.textContent = 'Signed out. Guest progression stays on this device.';
+    renderAuthMode();
+  } finally { authLogout.disabled = false; }
+});
 authForm.addEventListener('submit', async (event) => {
-  event.preventDefault(); authStatus.textContent = 'Contacting secure account service…'; authSubmit.disabled = true;
-  const body = { action: authMode, email: document.getElementById('merk-auth-email').value.trim(), password: document.getElementById('merk-auth-password').value };
+  event.preventDefault();
+  const password = document.getElementById('merk-auth-password').value;
+  if (authMode === 'signup' && password !== authConfirm.value) {
+    authStatus.textContent = 'Passwords do not match.';
+    authConfirm.focus();
+    return;
+  }
+  authStatus.textContent = authMode === 'signup' ? 'Creating secure account…' : 'Signing in…';
+  authSubmit.disabled = true;
+  const body = { action: authMode, email: document.getElementById('merk-auth-email').value.trim(), password };
   if (authMode === 'signup') body.displayName = document.getElementById('merk-auth-name').value.trim();
-  try { const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Authentication failed'); authStatus.textContent = `${data.displayName} authenticated. Online services are ready.`; authForm.reset(); } catch (error) { authStatus.textContent = error.message; } finally { authSubmit.disabled = false; }
+  try {
+    const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Authentication failed');
+    authSessionActive = true;
+    authSession.hidden = false;
+    authSessionName.textContent = data.displayName;
+    authStatus.textContent = 'Account connected. Progression sync is active.';
+    syncIdentity(data.displayName);
+    authForm.reset();
+    renderAuthMode();
+  } catch (error) {
+    authStatus.textContent = String(error?.message || 'Authentication failed').replaceAll('_',' ');
+  } finally { authSubmit.disabled = false; }
 });
 renderAuthMode();
 void refreshAuthStatus();
+
 function menuAction(name) {
   if (name === 'restart') {
     restartMatch();
@@ -2419,7 +2565,7 @@ function menuAction(name) {
     return;
   }
   if (name === 'settings') {
-    document.getElementById('touch-settings')?.scrollIntoView({ block: 'center' });
+    openRuntimeSettings();
     return;
   }
   if (name === 'auth') {
