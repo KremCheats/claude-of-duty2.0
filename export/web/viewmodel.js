@@ -945,7 +945,7 @@ export class Viewmodel {
     }
   }
 
-  reload(empty = false) {
+  reload(empty = false, { speed = 1 } = {}) {
     const action = empty && this.reloadEmptyAction ? this.reloadEmptyAction : this.reloadAction;
     if (!this.ready || !action || this.reloading || this.meleeing || this.throwing) return false;
     // A reload cuts a rechamber short; the fresh magazine chambers a round.
@@ -958,7 +958,7 @@ export class Viewmodel {
     this.adsFireAction?.stop();
     this.introFireAction?.stop();
     this.introAdsFireAction?.stop();
-    action.reset().fadeIn(0.12).play();
+    action.reset().setEffectiveTimeScale(Math.max(0.5, Math.min(Number(speed) || 1, 2))).fadeIn(0.12).play();
     this.idleAction.fadeOut(0.12);
     // The empty magazine still holds the well; the fresh one waits for mag_out.
     this.showSpareMagazine(false);
