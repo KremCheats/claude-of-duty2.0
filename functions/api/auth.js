@@ -32,6 +32,8 @@ export async function onRequestPost({ request, env }) {
     const existing = await env.MERK_DB.prepare('SELECT * FROM accounts WHERE email = ?').bind(input.email).first();
     if (input.action === 'signup') {
       if (existing) return json({ error: 'email already registered' }, 409, requestHeaders());
+      const nameOwner = await env.MERK_DB.prepare('SELECT account_id FROM accounts WHERE lower(display_name) = lower(?)').bind(input.displayName).first();
+      if (nameOwner) return json({ error: 'display name already taken' }, 409, requestHeaders());
       const accountId = crypto.randomUUID();
       const passwordHash = await hashPassword(input.password);
       await env.MERK_DB.prepare('INSERT INTO accounts (account_id, email, password_hash, display_name) VALUES (?, ?, ?, ?)').bind(accountId, input.email, passwordHash, input.displayName).run();
