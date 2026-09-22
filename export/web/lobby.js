@@ -108,9 +108,9 @@ if (lobby) {
     const time = lobby.querySelector('[data-match-time]');
     stopMatchTimer();
     matchTimer = setInterval(() => { if (time) time.textContent = new Date(performance.now() - matchStartedAt).toISOString().slice(14, 19); }, 250);
-    // Keep the matchmaking transition readable, but do not put an artificial
-    // multi-second gate in front of the real asset loader.
-    setTimeout(() => { if (!lobby.querySelector('[data-lobby-view="matchmaking"]')?.hidden) showLoading(); }, 650);
+    // Give the queue result one readable beat, then hand off immediately to
+    // the real loader. The lobby must never be a second loading screen.
+    setTimeout(() => { if (!lobby.querySelector('[data-lobby-view="matchmaking"]')?.hidden) showLoading(); }, 220);
   };
   const showLoading = () => {
     stopMatchTimer();
@@ -120,13 +120,14 @@ if (lobby) {
     const copy = screen?.querySelector('[data-loading-copy]');
     if (!screen) return startGame();
     screen.hidden = false;
-    if (progress) progress.style.width = '62%';
-    if (copy) copy.textContent = 'MATCH FOUND // PREPARING DEPLOYMENT';
-    setTimeout(() => {
-      if (progress) progress.style.width = '100%';
-      if (copy) copy.textContent = 'DEPLOYING';
-      setTimeout(() => { screen.hidden = true; startGame(); }, 110);
-    }, 220);
+    if (progress) progress.style.width = '100%';
+    if (copy) copy.textContent = 'MATCH FOUND // DEPLOYING';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        screen.hidden = true;
+        startGame();
+      });
+    });
   };
   const startGame = () => {
     const expectedMode = queueMode === 'zombies' ? 'zombies' : 'multiplayer';
