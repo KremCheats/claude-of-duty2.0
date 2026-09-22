@@ -1372,6 +1372,16 @@ function applyVisionTone(material, tone) {
   material.uniforms.saturation.value = SATURATION;
 }
 
+function applyPostQuality() {
+  if (!gradeMaterial) return;
+  const preset = graphics.preset;
+  const quality = preset === 'quality';
+  const performance = preset === 'performance';
+  gradeMaterial.uniforms.vignette.value = performance ? 0.11 : quality ? 0.18 : 0.15;
+  gradeMaterial.uniforms.dither.value = performance ? 0.001 : quality ? 0.0028 : 0.0022;
+  gradeMaterial.uniforms.contrast.value = performance ? 1.015 : quality ? 1.04 : 1.03;
+}
+
 function sizeGradeTarget() {
   if (!gradeTarget) return;
   const ratio = renderer.getPixelRatio();
@@ -1398,6 +1408,7 @@ function applyGraphicsSettings() {
   resizeGraphicsBuffer();
   if (gradeTarget) graphicsRenderer.configure(graphics.antialias, gradeTarget);
   refreshTextureFiltering();
+  applyPostQuality();
 }
 
 function setGraphicsPreset(preset) {
@@ -1435,6 +1446,7 @@ loadGradeLut(activeMap.lut).then((lut) => {
   // configured with and stop THREE applying it a second time on the quad.
   gradeMaterial.uniforms.exposure.value = renderer.toneMappingExposure;
   if (visionTone) applyVisionTone(gradeMaterial, visionTone);
+  applyPostQuality();
   console.info(`post: tone map + ${lut ? 'vision-set LUT' : 'no LUT'}, exposure ${renderer.toneMappingExposure}`);
 });
 
