@@ -1047,6 +1047,7 @@ import {
   WEAPONS, WEAPON_CLASSES, WEAPON_CLASS_IDS, weaponsOfClass, findWeapon, weaponCue,
   EQUIPMENT, equipmentOfClass, MELEE, THROW_CLIPS, DEFAULT_LOADOUT, nextHeldWeapon, SCOPE,
 } from './weapons.js';
+import { LOADOUT_ATTACHMENT_IDS, normalizeLoadoutAttachment, attachmentProfile } from './loadout-attachments.js';
 import { WEAPON_CAMO_IDS, randomPick } from './skins.js';
 import { GrenadeManager, throwOrigin, throwVelocity } from './grenades.js';
 import { animateWater } from './lighting.js';
@@ -1149,8 +1150,8 @@ const weaponSlots = new Map(Object.values(WEAPON_DEFINITIONS).map((definition) =
 }));
 // The equipped class: a primary, a secondary, a lethal and a tactical. The
 // wheel and the number keys move between the two guns; G and Q throw.
-const CLASS_ATTACHMENT_IDS = new Set(['standard', 'extended_mag', 'fast_mag']);
-const normalizeClassAttachment = (value) => CLASS_ATTACHMENT_IDS.has(value) ? value : 'standard';
+const CLASS_ATTACHMENT_IDS = new Set(LOADOUT_ATTACHMENT_IDS);
+const normalizeClassAttachment = normalizeLoadoutAttachment;
 const persistedLoadout = (() => {
   try {
     const saved = JSON.parse(mapStorage?.getItem('merk-of-duty.active-loadout.v2') || 'null');
@@ -1214,13 +1215,17 @@ function applyAttachmentEffects({ refill = false } = {}) {
     const selectedId = loadout[weaponClass];
     const slot = weaponSlots.get(selectedId);
     if (!slot?.controller) continue;
+    const profile = attachmentProfile(loadoutAttachments[weaponClass]);
     const baseMagazine = Math.max(1, Number(slot.definition.magazineSize) || 1);
-    const magazineSize = loadoutAttachments[weaponClass] === 'extended_mag'
-      ? Math.ceil(baseMagazine * 1.5)
-      : baseMagazine;
+    const magazineSize = Math.max(1, Math.ceil(baseMagazine * profile.magazineScale));
     slot.controller.magazineSize = magazineSize;
     if (refill) slot.controller.magazine = magazineSize;
     else slot.controller.magazine = Math.min(slot.controller.magazine, magazineSize);
+
+    const inTime = Math.max(0.01, Number(slot.gunplay.ballistics.adsTransInTime) || 0.25);
+    const outTime = Math.max(0.01, Number(slot.gunplay.ballistics.adsTransOutTime) || 0.25);
+    slot.viewmodel.adsTransition.inTime = inTime * profile.adsTimeScale;
+    slot.viewmodel.adsTransition.outTime = outTime * profile.adsTimeScale;
   }
 }
 let activeWeaponId = loadout.primary;
@@ -2314,6 +2319,7 @@ function selectWeapon(id) {
   weapon = next.controller;
   viewmodel = next.viewmodel;
   gunplay = next.gunplay;
+  applyAttachmentEffects();
   if (viewmodel.pendingRechamber) viewmodel.rechamber();
   gunplay.spread.reset();
   gunplay.kick.reset();
@@ -2982,7 +2988,10 @@ function fireShot({ triggerShotCount = 0 } = {}) {
   // View kick from the weapon file, on top of the authored weapon animation.
   // The kick recentres over the next frames in tick(), so a held burst climbs
   // and then settles instead of walking the aim away for good.
-  const kick = gunplay.kick.onShot({ aimBlend: viewmodel.aimBlend });
+  const kick = gunplay.kick.onShot({
+    aimBlend: viewmodel.aimBlend,
+    scale: attachmentProfile(attachmentForWeapon(activeWeaponId)).recoilScale,
+  });
   nudgeView(kick.pitch, kick.yaw);
 }
 
@@ -3057,7 +3066,7 @@ function updateScope(dt, { holdBreath = false, active = true } = {}) {
 
 function reloadWeapon() {
   const empty = weapon.magazine === 0;
-  const reloadSpeed = attachmentForWeapon(activeWeaponId) === 'fast_mag' ? 1.25 : 1;
+  const reloadSpeed = attachmentProfile(attachmentForWeapon(activeWeaponId)).reloadScale;
   if (!weapon.startReload()) return false;
   if (!viewmodel.reload(empty, { speed: reloadSpeed })) {
     weapon.cancelReload();
