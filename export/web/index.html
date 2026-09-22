@@ -1788,6 +1788,8 @@ raycaster.firstHitOnly = true;
 const down = new THREE.Vector3(0, -1, 0);
 const lookCenter = new THREE.Vector2(0, 0);
 const yawPitch = new THREE.Euler(0, 0, 0, 'YXZ');
+const aimAssistForward = new THREE.Vector3();
+const aimAssistTarget = new THREE.Vector3();
 
 let ready = false;
 let locked = false;
@@ -1928,8 +1930,26 @@ function canControlPlayer() {
     !(touchControls.mode && scoreboardHeld) && match.phase === 'playing' && !playerHealth?.dead;
 }
 
+function mobileAimAssistFriction() {
+  if (runtimeSettings.assist !== 'ON' || !enemies || !player || playerHealth?.dead) return 1;
+  camera.getWorldDirection(aimAssistForward);
+  let bestDot = 0.993;
+  for (const enemy of enemies.enemies ?? []) {
+    if (enemy.dead || !enemy.root.visible) continue;
+    aimAssistTarget.copy(enemy.root.position).addScaledVector(new THREE.Vector3(0, 1, 0), 48).sub(camera.position);
+    const distance = aimAssistTarget.length();
+    if (distance < 25 || distance > 1250) continue;
+    aimAssistTarget.multiplyScalar(1 / distance);
+    const dot = aimAssistForward.dot(aimAssistTarget);
+    if (dot > bestDot) bestDot = dot;
+  }
+  if (bestDot <= 0.993) return 1;
+  const lock = THREE.MathUtils.clamp((bestDot - 0.993) / 0.007, 0, 1);
+  return THREE.MathUtils.lerp(0.82, viewmodel?.aimBlend > 0.25 ? 0.48 : 0.62, lock);
+}
+
 function applyLook(x, y, sensitivity = 0.0022, { touch = false } = {}) {
-  const baseScale = touch ? 1 : runtimeSettings.sensitivity;
+  const baseScale = touch ? mobileAimAssistFriction() : runtimeSettings.sensitivity;
   const adsScale = viewmodel?.aimBlend > 0.05 ? runtimeSettings.ads : 1;
   sensitivity *= baseScale * adsScale * zoomLookScale(camera.fov, runtimeSettings.fov);
   const vertical = runtimeSettings.invert === 'ON' ? -y : y;
@@ -3371,6 +3391,7 @@ document.addEventListener('pointerlockchange', () => {
     cueMatchStart();
   } else {
     frontend.suspend();
+    syncMenuButtons();
     if (match.phase === 'playing') menuCue('uin_main_pause');
   }
   if (!locked) {
@@ -4018,6 +4039,7 @@ function tick() {
         `collision ${collisionVisible ? 'shown' : 'ready'}  path ${pathPoints}`;
       if (hud.textContent !== nextHud) hud.textContent = nextHud;
       renderMatchUi();
+      if (frontend.visible && frontend.screen === 'pause') syncMenuButtons();
     }
   }
   if (match.phase === 'ended' && !matchEndedHandled) {
