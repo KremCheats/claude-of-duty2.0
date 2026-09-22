@@ -1,4 +1,4 @@
-const CACHE = 'merk-runtime-v1.4.1';
+const CACHE = 'merk-runtime-v1.5.0';
 const CACHEABLE = /\.(?:glb|bin|ktx2|webp|png|jpe?g|gif|svg|woff2?|mp3|ogg|wav|json)$/i;
 const CODE = /\.(?:js|mjs|css)$/i;
 
