@@ -698,7 +698,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <section class="lobby-panel"><div class="lobby-stats-art"><div><b>LEVEL 55</b><small>PRESTIGE 1</small></div><strong>✠</strong></div><div class="lobby-stat-grid"><div class="lobby-stat"><small>W/L RATIO</small><strong>1.32</strong></div><div class="lobby-stat"><small>K/D RATIO</small><strong>1.48</strong></div><div class="lobby-stat"><small>SCORE PER MIN</small><strong>462</strong></div></div></section>
     </aside>
     <button class="lobby-find" type="button" data-lobby-action="find"><strong>◎ &nbsp; FIND MATCH</strong><small>QUICK PLAY / PUBLIC MATCH</small></button>
-    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.1.0</span></footer>
+    <footer class="lobby-footer"><div class="lobby-keys"><span class="lobby-key"><kbd>↵</kbd>SELECT</span><span class="lobby-key"><kbd>ESC</kbd>BACK</span><span class="lobby-key"><kbd>R</kbd>PARTY PRIVACY</span></div><span>NAT: <b style="color:#72e79b">OPEN</b> &nbsp;│&nbsp; ♟ 0 FRIENDS ONLINE</span><span>v1.2.0</span></footer>
   </div>
   <section class="lobby-view" data-lobby-view="multiplayer" hidden><div class="lobby-dialog"><h2>MULTIPLAYER LOBBY</h2><p><span data-lobby-current-mode>TEAM DEATHMATCH</span> &nbsp; / &nbsp; <span data-lobby-current-map>NUKETOWN 2025</span> &nbsp; / &nbsp; PUBLIC MATCH</p><div class="lobby-mode-grid"><button class="lobby-mode" data-lobby-mode="TEAM DEATHMATCH" data-active="true">TEAM DEATHMATCH</button><button class="lobby-mode" data-lobby-mode="SEARCH & DESTROY">SEARCH & DESTROY</button><button class="lobby-mode" data-lobby-mode="HARDPOINT">HARDPOINT</button><button class="lobby-mode" data-lobby-mode="CAPTURE THE FLAG">CAPTURE THE FLAG</button><button class="lobby-mode" data-lobby-mode="FREE FOR ALL">FREE FOR ALL</button></div><h3>MAP SELECT</h3><div class="lobby-map-grid"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true"><strong data-map-title>NUKETOWN 2025</strong><small>Atomic test site · 6–12 players</small></button><button class="lobby-map" data-lobby-map="mp_hijacked"><strong data-map-title>HIJACKED</strong><small>Luxury yacht · 8–12 players</small></button><button class="lobby-map" data-lobby-map="firing_range"><strong data-map-title>FIRING RANGE</strong><small>Training facility · 6–10 players</small></button><button class="lobby-map" data-lobby-map="crash"><strong data-map-title>CRASH</strong><small>Desert conflict zone · 6–12 players</small></button></div><div class="lobby-roster"><div class="lobby-roster-row"><span>KREMITYSS</span><small>HOST</small><span>READY</span><span>24ms</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>SEARCHING</small><span>—</span><span>—</span></div><div class="lobby-roster-row"><span>OPEN SLOT</span><small>INVITE</small><span>—</span><span>—</span></div></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action secondary" data-lobby-action="map-open">CHANGE MAP</button><button class="lobby-action" data-lobby-action="start">FIND MATCH / START MATCH</button></div></div></section>
   <section class="lobby-view" data-lobby-view="map-select" hidden><div class="lobby-dialog lobby-dialog-wide"><div class="lobby-dialog-top"><div><h2>MAP SELECT</h2><p>CINEMATIC OPERATIONS // SELECT DEPLOYMENT ZONE</p></div><span class="lobby-screen-hint">← / → SCROLL &nbsp; · &nbsp; ENTER SELECT</span></div><div class="lobby-map-grid lobby-map-grid-wide"><button class="lobby-map" data-lobby-map="mp_nuketown_2020" data-active="true"><strong data-map-title>NUKETOWN 2025</strong><small>Atomic test site · 6–12 players<br>TEAM DEATHMATCH · DOMINATION · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="mp_hijacked"><strong data-map-title>HIJACKED</strong><small>Luxury yacht · 8–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · FREE FOR ALL</small></button><button class="lobby-map" data-lobby-map="firing_range"><strong data-map-title>FIRING RANGE</strong><small>Tactical training grounds · 6–10 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button><button class="lobby-map" data-lobby-map="crash"><strong data-map-title>CRASH</strong><small>Desert conflict zone · 6–12 players<br>TEAM DEATHMATCH · SEARCH & DESTROY · HARDPOINT</small></button></div><div class="lobby-actions"><button class="lobby-action secondary" data-lobby-action="back">BACK</button><button class="lobby-action" data-lobby-action="map-confirm">SELECT MAP</button></div></div></section>
@@ -1505,7 +1505,7 @@ const classPreviewArt = document.getElementById('fe-class-preview-art');
 const classPreviewName = document.getElementById('fe-class-preview-name');
 const classPreviewMeta = document.getElementById('fe-class-preview-meta');
 const attachmentList = document.getElementById('fe-attachment-list');
-function previewWeapon(entry, attachment = 'iron_sights') {
+function previewWeapon(entry, attachment = 'standard') {
   if (!entry) return;
   classPreviewArt.replaceChildren();
   if (entry.cardArt) { const image = document.createElement('img'); image.src = entry.cardArt; image.alt = entry.name; classPreviewArt.appendChild(image); }
@@ -1513,7 +1513,7 @@ function previewWeapon(entry, attachment = 'iron_sights') {
   classPreviewName.textContent = entry.name;
   classPreviewMeta.textContent = `${entry.role ?? entry.class} · ${entry.roundsPerMinute ? `${entry.roundsPerMinute} RPM · ${entry.damage} damage · ${entry.magazineSize} round mag` : 'equipment'} · preview uses ${attachment.replaceAll('_', ' ')}`;
   attachmentList.replaceChildren();
-  const options = entry.roundsPerMinute ? ['iron_sights', 'reflex', 'red_dot', ...(entry.scope ? ['acog_scope'] : []), ...(entry.magazineUrl ? ['extended_mag'] : ['fast_mag'])] : [];
+  const options = entry.roundsPerMinute ? ['standard', 'extended_mag', 'fast_mag'] : [];
   for (const id of options) { const button = document.createElement('button'); button.type = 'button'; button.className = 'fe-attachment'; button.dataset.attachment = id; button.dataset.selected = String(id === attachment); button.textContent = id.replaceAll('_', ' ').toUpperCase(); button.addEventListener('click', (event) => { event.stopPropagation(); frontend?.chooseAttachment(id); }); attachmentList.appendChild(button); }
 }
 const frontend = new Frontend({
@@ -1550,6 +1550,9 @@ frontend.setWeapons([
   // Grenades have no viewmodel to fetch, so they are ready from the start.
   ...Object.values(EQUIPMENT).map((item) => ({ id: item.id, name: item.name, class: item.class, ready: true })),
 ], loadout);
+frontend.attachments[loadout.primary] = loadoutAttachments.primary;
+frontend.attachments[loadout.secondary] = loadoutAttachments.secondary;
+frontend.render();
 
 // The title-screen play counter. It fetches on its own and is never awaited by
 // the load, so a blocked request or an endpoint that is not there leaves the
