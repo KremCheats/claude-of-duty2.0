@@ -2,13 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MAPS, findMap, randomBakedMapId } from './maps.js';
 import { WEAPONS } from './weapons.js';
+import { LOADOUT_ATTACHMENTS, normalizeLoadoutAttachment } from './loadout-attachments.js';
 import { loadSettings as loadRuntimeSettings, saveSettings as saveRuntimeSettings } from './settings-runtime.js';
-
-const LOADOUT_ATTACHMENTS = Object.freeze({
-  standard: Object.freeze({ id: 'standard', name: 'STANDARD', detail: 'Factory configuration', magScale: 1, reloadScale: 1 }),
-  extended_mag: Object.freeze({ id: 'extended_mag', name: 'EXTENDED MAG', detail: '+50% magazine capacity', magScale: 1.5, reloadScale: 1 }),
-  fast_mag: Object.freeze({ id: 'fast_mag', name: 'FAST MAG', detail: '20% faster reload', magScale: 1, reloadScale: 1.25 }),
-});
 
 const lobby = document.getElementById('merk-lobby');
 if (lobby) {
@@ -19,7 +14,7 @@ if (lobby) {
   const activeClassKey = 'merk-of-duty.active-class.v2';
   const activeLoadoutKey = 'merk-of-duty.active-loadout.v2';
   const safeStorage = (() => { try { return window.localStorage; } catch { return null; } })();
-  const normalizeAttachment = (value) => LOADOUT_ATTACHMENTS[value] ? value : 'standard';
+  const normalizeAttachment = normalizeLoadoutAttachment;
   const defaultClass = () => ({
     primary: 'm27',
     secondary: 'fiveseven',
@@ -435,13 +430,17 @@ if (lobby) {
     const meta = view.querySelector('[data-loadout-preview-meta]');
     if (role) role.textContent = activeLoadoutSlot.toUpperCase();
     if (name) name.textContent = weapon.name.toUpperCase();
-    if (meta) meta.textContent = (weapon.role || weapon.class).toUpperCase() + ' · ' + String(weapon.fireMode || 'single').toUpperCase();
+    if (meta) {
+      const attachmentName = LOADOUT_ATTACHMENTS[activeClassLoadout().attachments[activeLoadoutSlot]]?.name || 'STANDARD';
+      meta.textContent = (weapon.role || weapon.class).toUpperCase() + ' · ' + String(weapon.fireMode || 'single').toUpperCase() + ' · ' + attachmentName;
+    }
 
+    const attachment = LOADOUT_ATTACHMENTS[activeClassLoadout().attachments[activeLoadoutSlot]] || LOADOUT_ATTACHMENTS.standard;
     const values = {
       damage: Math.min(100, Math.round(Number(weapon.damage) || 0)),
       'fire-rate': Math.min(100, Math.round((Number(weapon.roundsPerMinute) || 0) / 10)),
-      capacity: Math.min(100, Math.round((Number(weapon.magazineSize) || 0) * 2)),
-      mobility: weapon.class === 'secondary' ? 92 : /sniper/i.test(weapon.role || '') ? 56 : 76,
+      capacity: Math.min(100, Math.round((Number(weapon.magazineSize) || 0) * attachment.magazineScale * 2)),
+      mobility: Math.min(100, (weapon.class === 'secondary' ? 92 : /sniper/i.test(weapon.role || '') ? 56 : 76) + (attachment.adsTimeScale < 1 ? 8 : 0)),
     };
     for (const [keyName, value] of Object.entries(values)) {
       const bar = view.querySelector('[data-loadout-stat="' + keyName + '"]');
