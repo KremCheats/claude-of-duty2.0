@@ -59,7 +59,9 @@ if (lobby) {
   let activeMode = 'TEAM DEATHMATCH';
   const queryMap = new URLSearchParams(location.search).get('map');
   let activeMapId = queryMap || safeStorage?.getItem(mapKey) || randomBakedMapId();
-  let queueMode = new URLSearchParams(location.search).get('mode') === 'zombies' ? 'zombies' : 'multiplayer';
+  const initialMode = new URLSearchParams(location.search).get('mode');
+  let queueMode = initialMode === 'zombies' ? 'zombies' : initialMode === 'custom' ? 'custom' : 'multiplayer';
+  let mapReturnView = 'multiplayer';
   let matchTimer;
   let matchStartedAt;
 
@@ -102,7 +104,7 @@ if (lobby) {
   };
   const stopMatchTimer = () => { if (matchTimer) clearInterval(matchTimer); matchTimer = null; };
   const openMatchmaking = () => {
-    if (queueMode !== 'zombies') queueMode = 'multiplayer';
+    if (!['zombies', 'custom'].includes(queueMode)) queueMode = 'multiplayer';
     openView('matchmaking');
     matchStartedAt = performance.now();
     const time = lobby.querySelector('[data-match-time]');
@@ -130,7 +132,7 @@ if (lobby) {
     });
   };
   const startGame = () => {
-    const expectedMode = queueMode === 'zombies' ? 'zombies' : 'multiplayer';
+    const expectedMode = ['zombies', 'custom'].includes(queueMode) ? queueMode : 'multiplayer';
     const query = new URLSearchParams(location.search);
     if (query.get('map') !== activeMapId || query.get('mode') !== expectedMode || query.get('autostart') !== '1') {
       query.set('map', activeMapId);
@@ -149,7 +151,7 @@ if (lobby) {
     else if (name === 'zombies') { queueMode = 'zombies'; openView('zombies'); }
     else if (name === 'loadouts') openView('loadout');
     else if (name === 'campaign') openView('campaign');
-    else if (name === 'custom') openView('custom');
+    else if (name === 'custom') { queueMode = 'custom'; openView('custom'); }
     else if (name === 'store') openView('store');
     else if (name === 'options') openView('options');
     else if (name === 'account') {
@@ -543,10 +545,16 @@ if (lobby) {
   nav.forEach((item, index) => { item.addEventListener('pointerenter', () => setSelected(index)); item.addEventListener('click', () => activate(item.dataset.lobbyNav)); });
   lobby.querySelector('[data-lobby-action="find"]')?.addEventListener('click', () => openView('multiplayer'));
   lobby.querySelectorAll('[data-lobby-action="start"]').forEach((button) => button.addEventListener('click', openMatchmaking));
-  lobby.querySelectorAll('[data-lobby-action="back"]').forEach((button) => button.addEventListener('click', () => openView('')));
+  lobby.querySelectorAll('[data-lobby-action="back"]').forEach((button) => button.addEventListener('click', () => {
+    if (button.closest('[data-lobby-view="map-select"]')) openView(mapReturnView);
+    else openView('');
+  }));
   lobby.querySelector('[data-lobby-action="cancel-match"]')?.addEventListener('click', () => openView('multiplayer'));
-  lobby.querySelector('[data-lobby-action="map-confirm"]')?.addEventListener('click', () => openView('multiplayer'));
-  lobby.querySelector('[data-lobby-action="map-open"]')?.addEventListener('click', () => openView('map-select'));
+  lobby.querySelector('[data-lobby-action="map-confirm"]')?.addEventListener('click', () => openView(mapReturnView));
+  lobby.querySelectorAll('[data-lobby-action="map-open"]').forEach((button) => button.addEventListener('click', () => {
+    mapReturnView = button.closest('[data-lobby-view]')?.dataset.lobbyView === 'custom' ? 'custom' : 'multiplayer';
+    openView('map-select');
+  }));
   lobby.querySelector('[data-lobby-action="save-settings"]')?.addEventListener('click', () => { saveSettings(); openView(''); });
   lobby.querySelector('[data-open-auth]')?.addEventListener('click', () => {
     const panel = document.getElementById('merk-auth-panel');
