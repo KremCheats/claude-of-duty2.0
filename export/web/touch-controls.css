@@ -50,6 +50,8 @@ body.touch-mode canvas { touch-action: none; }
 .touch-jump { right: var(--touch-right); bottom: calc(var(--touch-bottom) + 92px); }
 .touch-crouch { right: calc(var(--touch-right) + 14px); bottom: calc(var(--touch-bottom) + 20px); }
 .touch-reload { right: calc(var(--touch-right) + 94px); bottom: var(--touch-bottom); }
+.touch-slide { width:52px; height:52px; right:calc(var(--touch-right) + 8px); bottom:calc(var(--touch-bottom) + 158px); }
+.touch-prone { width:48px; height:48px; right:calc(var(--touch-right) + 72px); bottom:calc(var(--touch-bottom) + 154px); }
 .touch-equipment { width: 48px; height: 48px; bottom: calc(var(--touch-bottom) + 174px); border-radius: 12px; }
 .touch-switch { left: var(--touch-left); }
 .touch-melee { left: calc(var(--touch-left) + 56px); }
@@ -136,3 +138,33 @@ body.scoped .touch-hint { visibility: hidden; }
   body.scoped .touch-equipment { top: max(72px, calc(env(safe-area-inset-top) + 62px)); bottom: auto; }
   body.scoped .touch-breath { top: max(128px, calc(env(safe-area-inset-top) + 118px)); bottom: auto; right: var(--touch-right); }
 }
+
+
+/* Saved presets only affect controls that have not been manually dragged. */
+body[data-control-layout="LEFT-HANDED"] .touch-move { left:auto; right:var(--touch-right); }
+body[data-control-layout="LEFT-HANDED"] .touch-look { inset:0 44% 0 0; }
+body[data-control-layout="LEFT-HANDED"] .touch-fire { right:auto; left:calc(var(--touch-left) + 69px); }
+body[data-control-layout="LEFT-HANDED"] .touch-aim { right:auto; left:calc(var(--touch-left) + 167px); }
+body[data-control-layout="LEFT-HANDED"] .touch-breath { right:auto; left:calc(var(--touch-left) + 167px); }
+body[data-control-layout="LEFT-HANDED"] .touch-jump { right:auto; left:var(--touch-left); }
+body[data-control-layout="LEFT-HANDED"] .touch-crouch { right:auto; left:calc(var(--touch-left) + 14px); }
+body[data-control-layout="LEFT-HANDED"] .touch-reload { right:auto; left:calc(var(--touch-left) + 94px); }
+body[data-control-layout="LEFT-HANDED"] .touch-slide { right:auto; left:calc(var(--touch-left) + 8px); }
+body[data-control-layout="LEFT-HANDED"] .touch-prone { right:auto; left:calc(var(--touch-left) + 72px); }
+body[data-control-layout="LEFT-HANDED"] .touch-switch { left:auto; right:var(--touch-right); }
+body[data-control-layout="LEFT-HANDED"] .touch-melee { left:auto; right:calc(var(--touch-right) + 56px); }
+body[data-control-layout="LEFT-HANDED"] .touch-frag { left:auto; right:calc(var(--touch-right) + 112px); }
+body[data-control-layout="LEFT-HANDED"] .touch-smoke { left:auto; right:calc(var(--touch-right) + 168px); }
+
+body[data-control-layout="TACTICAL"] .touch-crouch { right:calc(var(--touch-right) + 68px); bottom:calc(var(--touch-bottom) + 154px); }
+body[data-control-layout="TACTICAL"] .touch-slide { right:calc(var(--touch-right) + 8px); bottom:calc(var(--touch-bottom) + 154px); }
+body[data-control-layout="TACTICAL"] .touch-melee { left:auto; right:calc(var(--touch-right) + 150px); bottom:var(--touch-bottom); }
+body[data-control-layout="TACTICAL"] .touch-prone { right:calc(var(--touch-right) + 132px); bottom:calc(var(--touch-bottom) + 154px); }
+
+body[data-crosshair="DOT"] #crosshair i { display:none; }
+body[data-crosshair="DOT"] #crosshair::after { width:5px; height:5px; margin:-2.5px; }
+body[data-crosshair="CLASSIC"] #crosshair i { width:9px; height:2px; }
+body.damage-indicators-off #damage-direction { display:none !important; }
+body.hud-minimal #hud-minimap,
+body.hud-minimal #killfeed,
+body.hud-minimal #medals { opacity:0 !important; pointer-events:none !important; }
