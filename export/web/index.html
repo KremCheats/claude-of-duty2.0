@@ -2586,6 +2586,7 @@ let authMode = 'login';
 let authSessionActive = false;
 let cloudDisplayName = null;
 let cloudProfileSnapshot = { level: 1, xp: 0, wins: 0 };
+let cloudProfileJson = {};
 let cloudSyncTimer = null;
 function syncIdentity(name, { authenticated = authSessionActive } = {}) {
   const clean = String(name || runtimeSettings.name || 'OPERATIVE').replace(/^@/, '').trim() || 'OPERATIVE';
@@ -2625,7 +2626,7 @@ async function syncCloudSettings() {
     level: Math.max(1, Number(cloudProfileSnapshot.level) || 1),
     xp: Math.max(0, Number(cloudProfileSnapshot.xp) || 0),
     wins: Math.max(0, Number(cloudProfileSnapshot.wins) || 0),
-    profile_json: { settings: runtimeSettings, schema: 1 },
+    profile_json: { ...cloudProfileJson, settings: runtimeSettings, schema: 1 },
   };
   try {
     const response = await fetch('/api/profile', {
@@ -2662,8 +2663,9 @@ async function refreshProfileCard() {
     syncProfileCard(cloudProfileSnapshot);
     let cloud = {};
     try { cloud = typeof profile.profile_json === 'string' ? JSON.parse(profile.profile_json) : (profile.profile_json || {}); } catch {}
-    if (cloud.settings && typeof cloud.settings === 'object') {
-      runtimeSettings = saveRuntimeSettings({ ...runtimeSettings, ...cloud.settings }, mapStorage, { broadcast: false });
+    cloudProfileJson = cloud && typeof cloud === 'object' && !Array.isArray(cloud) ? { ...cloud } : {};
+    if (cloudProfileJson.settings && typeof cloudProfileJson.settings === 'object') {
+      runtimeSettings = saveRuntimeSettings({ ...runtimeSettings, ...cloudProfileJson.settings }, mapStorage, { broadcast: false });
       applyRuntimeSettings(runtimeSettings);
       renderRuntimeSettingsForm();
     } else {
@@ -2727,6 +2729,7 @@ authLogout.addEventListener('click', async () => {
     await fetch('/api/auth', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json'}, body:JSON.stringify({ action:'logout' }) });
     authSessionActive = false;
     cloudDisplayName = null;
+    cloudProfileJson = {};
     clearTimeout(cloudSyncTimer);
     authForm.reset();
     authStatus.textContent = 'Signed out. Guest progression stays on this device.';
@@ -3585,7 +3588,7 @@ document.addEventListener('keydown', (event) => {
     if (playerHealth) playerHealth.respawn();
     else player?.respawn();
   }
-  if (event.code === 'KeyN') {
+  if (event.code === 'KeyN' && automationPaused) {
     navigationVisible = !navigationVisible;
     setDebugVisibility();
   }
@@ -3593,7 +3596,7 @@ document.addEventListener('keydown', (event) => {
     collisionVisible = !collisionVisible;
     setDebugVisibility();
   }
-  if (event.code === 'KeyP') showPathToCrosshair();
+  if (event.code === 'KeyP' && automationPaused) showPathToCrosshair();
   if (event.code === 'KeyK' && locked) {
     viewmodel.cycleCamo();
     setCamoEverywhere(viewmodel.camo);
@@ -3937,7 +3940,7 @@ async function start() {
       'Left mouse fire · Right mouse aim · R reload · B respawn',
       'Wheel or 1/2 switch gun · E melee · G frag (hold to cook) · Q smoke',
       'Snipers: right mouse scopes · Shift in the scope holds breath',
-      'K cycle camo · N navmesh · V collision · P path · Esc pause',
+      'K cycle camo · Tab scoreboard · Esc pause',
       navigation ? '' : 'Navigation failed to load; collision and walking are still available.',
     ]);
     updateControlHints();
