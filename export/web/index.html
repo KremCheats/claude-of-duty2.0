@@ -3786,57 +3786,47 @@ async function start() {
       },
     });
 
-    navigation = await navPromise;
-    if (zombiesMode) zombies = new ZombieManager({scene, player, playerHealth, navigation, zombieTemplate: zombieTemplate?.scene ?? null, hints: { ...hints, mysteryBoxPositions: activeMap.zombies?.mysteryBoxPositions, spawns: activeMap.zombies?.spawnPositions ?? hints?.spawns }, config: { ...ZOMBIES_CONFIG, ...(activeMap.zombies ?? {}) },
-      onBoxReward: (result) => {
-        const slot = weaponSlots.get(result.weaponId);
-        if (slot) {
-          loadWeaponSlot(slot).then(() => selectWeapon(result.weaponId));
-        }
-        matchStatus.innerHTML = `MYSTERY BOX · ${result.weapon.name.toUpperCase()} <small>· ${slot ? 'WEAPON EQUIPPED' : 'ASSET PENDING CONVERSION'}</small>`;
-      },
-      onRound: (round, stats) => { document.body.classList.toggle('hellhound-round', Boolean(stats.hellhound)); matchStatus.innerHTML = stats.hellhound ? `HELLHOUND ROUND ${round} <small>· ${stats.count} INFERNO HOUNDS INBOUND</small>` : `ROUND ${round} <small>· ${stats.count} HOSTILES INBOUND</small>`; },
-      onGameOver: () => { matchResult.textContent = 'GAME OVER · ALL OPERATIVES DOWN'; scoreboard.classList.add('visible'); },
-      onHud: (state) => { if (!state) return; document.body.classList.toggle('hellhound-round', state.roundType === 'hellhound'); const box = state.boxCooldown > 0 ? ` · BOX ${state.boxCooldown.toFixed(1)}s` : state.boxInRange ? ` · BOX ${state.boxCost} [M]` : ` · BOX ${Math.round(state.boxDistance)}m`; matchStatus.innerHTML = state.roundType === 'hellhound' ? `HELLHOUND ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}${box}</small>` : `ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}${box}</small>`; }
-    });
-    if (navigation?.debugDrawer) scene.add(navigation.debugDrawer);
-    if (navigation?.crowdHelper) scene.add(navigation.crowdHelper);
-    setDebugVisibility();
+    const attachNavigation = (nav) => {
+      navigation = nav || null;
+      if (navigation?.debugDrawer && !navigation.debugDrawer.parent) scene.add(navigation.debugDrawer);
+      if (navigation?.crowdHelper && !navigation.crowdHelper.parent) scene.add(navigation.crowdHelper);
+      setDebugVisibility();
+      if (globalThis.hijacked) globalThis.hijacked.navigation = navigation;
+    };
 
-    const enemyPromise = (!zombiesMode && navigation
-      ? (enemies = new EnemyManager({
-          scene,
-          navigation,
-          collisionWorld,
-          player,
-          playerHealth,
-          weaponEffects,
-          hints,
-          count: 6,
-          // Smoke stands between a bot and its target: it loses sight.
-          sightBlocked: (from, to) => grenades?.smokeBlocks(from, to) ?? false,
-          onDeath: (victim, source) => {
-            const fell = victim.root.position;
-            const byPlayer = combatantId(source) === 'player';
-            const distance = byPlayer ? player.position.distanceTo(fell) : null;
-            match.recordKill(combatantId(source), `bot-${victim.index}`, distance === null ? null : { distance });
-            worldAudio?.death({ position: fell.clone() });
-            worldAudio?.bodyfall({ surface: surfaceProbe?.surfaceAt(fell), position: fell.clone() });
-            // Bot-on-bot kills stay out of the human player's medal chain.
-            if (medals && byPlayer) {
-              const earned = medals.onKill();
-              // The game's Long Shot medal, for a kill past LONGSHOT_DISTANCE.
-              const longshot = distance >= LONGSHOT_DISTANCE ? medals.def('longshot_kill') : null;
-              if (longshot) {
-                earned.push(longshot);
-                medals.noteEarned([longshot]);
-              }
-              for (const def of earned) showMedalPopup(def);
+    const createEnemyLoad = (nav) => {
+      if (zombiesMode || !nav) return Promise.resolve();
+      enemies = new EnemyManager({
+        scene,
+        navigation: nav,
+        collisionWorld,
+        player,
+        playerHealth,
+        weaponEffects,
+        hints,
+        count: 6,
+        sightBlocked: (from, to) => grenades?.smokeBlocks(from, to) ?? false,
+        onDeath: (victim, source) => {
+          const fell = victim.root.position;
+          const byPlayer = combatantId(source) === 'player';
+          const distance = byPlayer ? player.position.distanceTo(fell) : null;
+          match.recordKill(combatantId(source), `bot-${victim.index}`, distance === null ? null : { distance });
+          worldAudio?.death({ position: fell.clone() });
+          worldAudio?.bodyfall({ surface: surfaceProbe?.surfaceAt(fell), position: fell.clone() });
+          if (medals && byPlayer) {
+            const earned = medals.onKill();
+            const longshot = distance >= LONGSHOT_DISTANCE ? medals.def('longshot_kill') : null;
+            if (longshot) {
+              earned.push(longshot);
+              medals.noteEarned([longshot]);
             }
-          },
-        })).load({ onProgress: (label, event) => progress(label, event) })
-      : Promise.resolve()
-    ).finally(() => frontend.stage('enemy'));
+            for (const def of earned) showMedalPopup(def);
+          }
+        },
+      });
+      if (globalThis.hijacked) globalThis.hijacked.enemies = enemies;
+      return enemies.load({ onProgress: (label, event) => progress(label, event) });
+    };
 
     const botNames = ['ADMIRAL', 'CORSAIR', 'DEADEYE', 'MARINER', 'ROGUE', 'VIPER'];
     const registerLoadedBots = () => {
@@ -3844,19 +3834,66 @@ async function start() {
         match.register(`bot-${enemy.index}`, botNames[enemy.index] ?? `BOT ${enemy.index + 1}`);
       }
     };
+    const attachLoadedEnemyProbes = () => {
+      for (const enemy of enemies?.enemies ?? []) {
+        if (!enemyProbes.has(enemy)) enemyProbes.set(enemy, attachObjectProbe(enemy.root));
+      }
+    };
+
+    let deferredNavigation = false;
+    if (fastBoot && !zombiesMode) {
+      // Mobile can enter the map without waiting for the Recast/WASM navmesh.
+      // Give it a short head start, then attach bots whenever it finishes.
+      const quickNavigation = await Promise.race([
+        navPromise,
+        new Promise((resolve) => setTimeout(() => resolve(null), 850)),
+      ]);
+      if (quickNavigation) attachNavigation(quickNavigation);
+      else deferredNavigation = true;
+    } else {
+      attachNavigation(await navPromise);
+    }
+
+    if (zombiesMode) {
+      if (!navigation) throw new Error('Zombies navigation failed to initialize');
+      zombies = new ZombieManager({scene, player, playerHealth, navigation, zombieTemplate: zombieTemplate?.scene ?? null, hints: { ...hints, mysteryBoxPositions: activeMap.zombies?.mysteryBoxPositions, spawns: activeMap.zombies?.spawnPositions ?? hints?.spawns }, config: { ...ZOMBIES_CONFIG, ...(activeMap.zombies ?? {}) },
+        onBoxReward: (result) => {
+          const slot = weaponSlots.get(result.weaponId);
+          if (slot) loadWeaponSlot(slot).then(() => selectWeapon(result.weaponId));
+          matchStatus.innerHTML = `MYSTERY BOX · ${result.weapon.name.toUpperCase()} <small>· ${slot ? 'WEAPON EQUIPPED' : 'ASSET PENDING CONVERSION'}</small>`;
+        },
+        onRound: (round, stats) => { document.body.classList.toggle('hellhound-round', Boolean(stats.hellhound)); matchStatus.innerHTML = stats.hellhound ? `HELLHOUND ROUND ${round} <small>· ${stats.count} INFERNO HOUNDS INBOUND</small>` : `ROUND ${round} <small>· ${stats.count} HOSTILES INBOUND</small>`; },
+        onGameOver: () => { matchResult.textContent = 'GAME OVER · ALL OPERATIVES DOWN'; scoreboard.classList.add('visible'); },
+        onHud: (state) => { if (!state) return; document.body.classList.toggle('hellhound-round', state.roundType === 'hellhound'); const box = state.boxCooldown > 0 ? ` · BOX ${state.boxCooldown.toFixed(1)}s` : state.boxInRange ? ` · BOX ${state.boxCost} [M]` : ` · BOX ${Math.round(state.boxDistance)}m`; matchStatus.innerHTML = state.roundType === 'hellhound' ? `HELLHOUND ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}${box}</small>` : `ROUND ${state.round} · ${state.remaining} REMAINING <small>POINTS ${state.points} · KILLS ${state.kills}${state.downed ? ' · DOWNED' : ''}${box}</small>`; }
+      });
+    }
+
+    const enemyPromise = createEnemyLoad(navigation).finally(() => frontend.stage('enemy'));
 
     if (fastBoot) {
-      // The equipped gun is required to play. Bot bodies are not: let their
-      // models finish streaming after deployment instead of holding mobile at
-      // 90–99% forever on a slow or memory-constrained Safari session.
       await viewmodelPromise;
-      void enemyPromise.then(() => {
-        registerLoadedBots();
-        renderMatchUi();
-      }).catch((error) => console.warn('Enemy assets unavailable:', error));
+      if (deferredNavigation) {
+        // Enemy assets are explicitly off the first-playable-frame path.
+        frontend.stage('enemy');
+        void navPromise.then(async (nav) => {
+          if (!nav) return;
+          attachNavigation(nav);
+          await createEnemyLoad(nav);
+          registerLoadedBots();
+          attachLoadedEnemyProbes();
+          renderMatchUi();
+        }).catch((error) => console.warn('Deferred navigation/enemy setup unavailable:', error));
+      } else {
+        void enemyPromise.then(() => {
+          registerLoadedBots();
+          attachLoadedEnemyProbes();
+          renderMatchUi();
+        }).catch((error) => console.warn('Enemy assets unavailable:', error));
+      }
     } else {
       await Promise.all([viewmodelPromise, enemyPromise]);
       registerLoadedBots();
+      attachLoadedEnemyProbes();
     }
     refreshTextureFiltering();
     renderMatchUi();
