@@ -7,7 +7,37 @@ if (lobby) {
   const views = [...lobby.querySelectorAll('[data-lobby-view]')];
   const storageKey = 'merk-of-duty.ui-settings.v1';
   const mapKey = 'merk-of-duty.selected-map.v1';
+  const loadoutsKey = 'merk-of-duty.loadouts.v2';
+  const activeClassKey = 'merk-of-duty.active-class.v2';
+  const activeLoadoutKey = 'merk-of-duty.active-loadout.v2';
   const safeStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+  const defaultClass = () => ({ primary: 'm27', secondary: 'fiveseven' });
+  const normalizeClass = (value = {}) => ({
+    primary: WEAPONS[value.primary]?.class === 'primary' ? value.primary : 'm27',
+    secondary: WEAPONS[value.secondary]?.class === 'secondary' ? value.secondary : 'fiveseven',
+  });
+  const readClasses = () => {
+    try {
+      const parsed = JSON.parse(safeStorage?.getItem(loadoutsKey) || '[]');
+      if (Array.isArray(parsed)) return Array.from({ length: 5 }, (_, index) => normalizeClass(parsed[index] || defaultClass()));
+    } catch { /* corrupt local data falls back to defaults */ }
+    return Array.from({ length: 5 }, defaultClass);
+  };
+  let customClasses = readClasses();
+  let activeClassIndex = Math.max(0, Math.min(4, Number(safeStorage?.getItem(activeClassKey)) || 0));
+  let activeLoadoutSlot = 'primary';
+  const activeClassLoadout = () => customClasses[activeClassIndex];
+  const persistLoadouts = () => {
+    const current = normalizeClass(activeClassLoadout());
+    customClasses[activeClassIndex] = current;
+    try {
+      safeStorage?.setItem(loadoutsKey, JSON.stringify(customClasses));
+      safeStorage?.setItem(activeClassKey, String(activeClassIndex));
+      safeStorage?.setItem(activeLoadoutKey, JSON.stringify(current));
+      safeStorage?.setItem('merk-of-duty.loadout-primary.v1', current.primary);
+      safeStorage?.setItem('merk-of-duty.loadout-secondary.v1', current.secondary);
+    } catch { /* private browsing */ }
+  };
   let selected = Math.max(0, nav.findIndex((item) => item.dataset.lobbyNav === 'multiplayer'));
   let activeMode = 'TEAM DEATHMATCH';
   const queryMap = new URLSearchParams(location.search).get('map');
@@ -110,31 +140,103 @@ if (lobby) {
     }
   };
   const loadSettings = () => {
-    try { const saved = JSON.parse(safeStorage?.getItem(storageKey) || '{}'); lobby.querySelectorAll('[data-setting-key]').forEach((input) => { if (saved[input.dataset.settingKey] != null) input.value = saved[input.dataset.settingKey]; }); } catch { /* local settings are optional */ }
+    try {
+      const saved = JSON.parse(safeStorage?.getItem(storageKey) || '{}');
+      lobby.querySelectorAll('[data-setting-key]').forEach((input) => {
+        if (saved[input.dataset.settingKey] != null) input.value = saved[input.dataset.settingKey];
+      });
+      const rendererPreset = safeStorage?.getItem('hijacked.graphics');
+      const quality = lobby.querySelector('[data-setting-key="quality"]');
+      if (quality && rendererPreset) quality.value = ({ quality: 'HIGH', auto: 'BALANCED', performance: 'PERFORMANCE' })[rendererPreset] || quality.value;
+    } catch { /* local settings are optional */ }
   };
   const saveSettings = () => {
     const values = Object.fromEntries([...lobby.querySelectorAll('[data-setting-key]')].map((input) => [input.dataset.settingKey, input.value]));
-    try { safeStorage?.setItem(storageKey, JSON.stringify(values)); } catch { /* private browsing */ }
+    try {
+      safeStorage?.setItem(storageKey, JSON.stringify(values));
+      const rendererPreset = ({ HIGH: 'quality', BALANCED: 'auto', PERFORMANCE: 'performance' })[values.quality];
+      if (rendererPreset) safeStorage?.setItem('hijacked.graphics', rendererPreset);
+    } catch { /* private browsing */ }
   };
   const renderWeaponRoster = () => {
     const grid = lobby.querySelector('[data-lobby-weapon-grid]');
     if (!grid) return;
-    const saved = safeStorage?.getItem('merk-of-duty.loadout-primary.v1') || 'm27';
+    const view = lobby.querySelector('[data-lobby-view="loadout"] .lobby-dialog');
+    if (view && !view.querySelector('[data-loadout-class-tabs]')) {
+      const classTabs = document.createElement('div');
+      classTabs.className = 'lobby-mode-grid';
+      classTabs.dataset.loadoutClassTabs = '';
+      classTabs.setAttribute('aria-label', 'Saved custom classes');
+      classTabs.innerHTML = Array.from({ length: 5 }, (_, index) =>
+        `<button class="lobby-mode" type="button" data-loadout-class="${index}">CUSTOM ${index + 1}</button>`).join('');
+      const slotTabs = document.createElement('div');
+      slotTabs.className = 'lobby-mode-grid';
+      slotTabs.dataset.loadoutSlotTabs = '';
+      slotTabs.setAttribute('aria-label', 'Weapon slot');
+      slotTabs.innerHTML = '<button class="lobby-mode" type="button" data-loadout-slot="primary">PRIMARY</button><button class="lobby-mode" type="button" data-loadout-slot="secondary">SECONDARY</button>';
+      grid.before(classTabs, slotTabs);
+      classTabs.querySelectorAll('[data-loadout-class]').forEach((button) => button.addEventListener('click', () => {
+        activeClassIndex = Number(button.dataset.loadoutClass);
+        persistLoadouts();
+        renderWeaponRoster();
+      }));
+      slotTabs.querySelectorAll('[data-loadout-slot]').forEach((button) => button.addEventListener('click', () => {
+        activeLoadoutSlot = button.dataset.loadoutSlot;
+        renderWeaponRoster();
+      }));
+    }
+
+    persistLoadouts();
+    lobby.querySelectorAll('[data-loadout-class]').forEach((button) => {
+      button.dataset.active = String(Number(button.dataset.loadoutClass) === activeClassIndex);
+    });
+    lobby.querySelectorAll('[data-loadout-slot]').forEach((button) => {
+      button.dataset.active = String(button.dataset.loadoutSlot === activeLoadoutSlot);
+    });
+
+    const currentLoadout = activeClassLoadout();
     grid.replaceChildren();
-    for (const weapon of Object.values(WEAPONS)) {
+    for (const weapon of Object.values(WEAPONS).filter((item) => item.class === activeLoadoutSlot)) {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'lobby-weapon-card';
       card.dataset.weaponId = weapon.id;
-      card.dataset.active = String(weapon.id === saved);
+      card.dataset.active = String(weapon.id === currentLoadout[activeLoadoutSlot]);
       card.innerHTML = `<strong>${weapon.name}</strong><small>${weapon.role || weapon.class.toUpperCase()}</small><span>${weapon.damage ?? 0} DMG · ${weapon.magazineSize ?? 0} MAG · ${weapon.roundsPerMinute ?? 0} RPM</span>`;
       card.addEventListener('click', () => {
-        grid.querySelectorAll('[data-weapon-id]').forEach((item) => { item.dataset.active = String(item === card); });
-        try { safeStorage?.setItem('merk-of-duty.loadout-primary.v1', weapon.id); } catch { /* private browsing */ }
-        const current = lobby.querySelector('.lobby-roster-row small');
-        if (current) current.textContent = weapon.name;
+        currentLoadout[activeLoadoutSlot] = weapon.id;
+        persistLoadouts();
+        renderWeaponRoster();
       });
       grid.appendChild(card);
+    }
+
+    const rows = [...lobby.querySelectorAll('[data-lobby-view="loadout"] .lobby-roster-row')];
+    const primary = WEAPONS[currentLoadout.primary];
+    const secondary = WEAPONS[currentLoadout.secondary];
+    const setRow = (row, label, weapon) => {
+      if (!row || !weapon) return;
+      const cells = row.children;
+      if (cells[0]) cells[0].textContent = label;
+      if (cells[1]) cells[1].textContent = weapon.name.toUpperCase();
+      if (cells[2]) cells[2].textContent = (weapon.role || weapon.class).toUpperCase();
+      if (cells[3]) cells[3].textContent = String(weapon.magazineSize ?? '—');
+    };
+    setRow(rows[0], 'PRIMARY', primary);
+    setRow(rows[1], 'SECONDARY', secondary);
+    if (rows[2]) {
+      const cells = rows[2].children;
+      if (cells[0]) cells[0].textContent = 'CLASS PROFILE';
+      if (cells[1]) cells[1].textContent = `CUSTOM ${activeClassIndex + 1}`;
+      if (cells[2]) cells[2].textContent = 'PRIMARY + SECONDARY';
+      if (cells[3]) cells[3].textContent = 'SAVED';
+    }
+    if (rows[3]) {
+      const cells = rows[3].children;
+      if (cells[0]) cells[0].textContent = 'EQUIPMENT';
+      if (cells[1]) cells[1].textContent = 'FRAG / SMOKE';
+      if (cells[2]) cells[2].textContent = 'MATCH READY';
+      if (cells[3]) cells[3].textContent = '✓';
     }
   };
   nav.forEach((item, index) => { item.addEventListener('pointerenter', () => setSelected(index)); item.addEventListener('click', () => activate(item.dataset.lobbyNav)); });
