@@ -330,14 +330,14 @@ export class Frontend {
     this.loadout[option.class] = option.id;
     this.activeClass = this.classes.some((cls) => cls.id === option.class) ? option.class : this.activeClass;
     this.render();
-    this.onPreviewWeapon?.(option, this.attachments[option.id] ?? 'iron_sights');
+    this.onPreviewWeapon?.(option, this.attachments[option.id] ?? 'standard');
     return option.id;
   }
 
   chooseAttachment(attachment) {
     const selected = this.weaponOptions.find((weapon) => weapon.id === this.loadout[this.activeClass]);
     if (!selected) return false;
-    this.attachments[selected.id] = String(attachment ?? 'iron_sights');
+    this.attachments[selected.id] = String(attachment ?? 'standard');
     this.render();
     this.onPreviewWeapon?.(selected, this.attachments[selected.id]);
     return this.attachments[selected.id];
