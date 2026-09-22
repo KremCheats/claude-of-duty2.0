@@ -999,12 +999,14 @@ import { WEAPON_CAMO_IDS, randomPick } from './skins.js';
 import { GrenadeManager, throwOrigin, throwVelocity } from './grenades.js';
 import { animateWater } from './lighting.js';
 import { RealtimeMatchClient } from './realtime-client.js';
+import { loadSettings as loadRuntimeSettings, saveSettings as saveRuntimeSettings, graphicsPreset, fpsCap } from './settings-runtime.js';
 
 // Standard modes rotate maps automatically when no map is specified. An
 // explicit ?map= always wins so the lobby picker and shared links can launch a
 // specific operation; custom mode also honors the remembered selection.
 // Reading localStorage throws in a sandboxed frame, hence guard.
 const mapStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+let runtimeSettings = loadRuntimeSettings(mapStorage);
 const mapParams = new URLSearchParams(location.search);
 const gameMode = mapParams.get('mode') ?? 'multiplayer';
 const customMode = gameMode === 'custom';
@@ -1047,8 +1049,7 @@ if (zombiesMode) document.body.classList.add('zombies-mode');
 const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 1, 20000);
 camera.rotation.order = 'YXZ';
 
-let savedGraphics = 'auto';
-try { savedGraphics = localStorage.getItem('hijacked.graphics') ?? 'auto'; } catch {}
+const savedGraphics = graphicsPreset(runtimeSettings);
 const graphics = new GraphicsSettings({ mobile: matchMedia('(pointer: coarse)').matches, preset: savedGraphics });
 const renderer = new THREE.WebGLRenderer({
   antialias: false,
