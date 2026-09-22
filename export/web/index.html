@@ -930,6 +930,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <label>Invert Y <select id="merk-settings-invert"><option>OFF</option><option>ON</option></select></label>
       <label>Auto sprint <select id="merk-settings-autosprint"><option>ON</option><option>OFF</option></select></label>
       <label>Vibration <select id="merk-settings-vibration"><option>ON</option><option>OFF</option></select></label>
+      <label>Gyroscope <select id="merk-settings-gyro"><option>OFF</option><option>ON</option></select></label>
       <label>Control layout <select id="merk-settings-layout"><option>STANDARD</option><option>TACTICAL</option><option>LEFT-HANDED</option></select></label>
       <label>Master volume <span><input id="merk-settings-master" type="range" min="0" max="100" step="1"><output id="merk-settings-master-out"></output></span></label>
       <label>Effects volume <span><input id="merk-settings-effects" type="range" min="0" max="100" step="1"><output id="merk-settings-effects-out"></output></span></label>
@@ -2500,6 +2501,7 @@ const settingsFields = {
   invert: document.getElementById('merk-settings-invert'),
   autoSprint: document.getElementById('merk-settings-autosprint'),
   vibration: document.getElementById('merk-settings-vibration'),
+  gyro: document.getElementById('merk-settings-gyro'),
   layout: document.getElementById('merk-settings-layout'),
   master: document.getElementById('merk-settings-master'),
   effects: document.getElementById('merk-settings-effects'),
@@ -2532,6 +2534,7 @@ function readRuntimeSettingsForm() {
     invert: settingsFields.invert.value,
     autoSprint: settingsFields.autoSprint.value,
     vibration: settingsFields.vibration.value,
+    gyro: settingsFields.gyro.value,
     layout: settingsFields.layout.value,
     master: Number(settingsFields.master.value),
     effects: Number(settingsFields.effects.value),
