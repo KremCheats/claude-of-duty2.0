@@ -1,8 +1,8 @@
 {
   "name": "merk-of-duty",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "private": true,
-  "description": "Merk Of Duty: Black Ops Mobile \u2014 a browser-based Three.js shooter on the Hijacked map export.",
+  "description": "Merk Of Duty: Black Ops Mobile — a browser-based Three.js shooter on the Hijacked map export.",
   "scripts": {
     "assets:convert": "python3 .tools/convert_asset_package.py",
     "assets:batch": "python3 .tools/convert_asset_batch.py",
