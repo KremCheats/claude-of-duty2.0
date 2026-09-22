@@ -1809,6 +1809,7 @@ let frameWorkWarmupUntil = Number.POSITIVE_INFINITY;
 let hudElapsed = 1;
 let lastAdsState = false;
 let lastRenderedAt = 0;
+let tacticalSprintIntent = 0;
 let deathSource = null;
 let scoreboardHeld = false;
 let matchEndedHandled = false;
@@ -1989,6 +1990,7 @@ function applyAudioSettings() {
 function applyRuntimeSettings(next = loadRuntimeSettings(mapStorage)) {
   runtimeSettings = next;
   touchControls.setSensitivity(runtimeSettings.sensitivity);
+  touchControls.setHaptics(runtimeSettings.vibration === 'ON');
   touchSensitivity.value = String(runtimeSettings.sensitivity);
   sensitivityValue.textContent = `${runtimeSettings.sensitivity.toFixed(1)}×`;
   document.body.classList.toggle('hud-minimal', runtimeSettings.hud === 'MINIMAL');
@@ -3715,8 +3717,12 @@ function tick() {
   const manualSprint = Boolean(keys.ShiftLeft || keys.ShiftRight || touch.sprint);
   const wantsSprint = manualSprint || (runtimeSettings.autoSprint === 'ON' && movingForward);
   const wantsProne = Boolean(keys.KeyV || touch.prone);
-  const wantsTacticalSprint = wantsSprint && movingForward && !wantsProne && !touch.crouch &&
+  const tacticalCandidate = wantsSprint && movingForward && !wantsProne && !touch.crouch &&
     Math.hypot(forwardAxis, strafeAxis) > 0.88;
+  tacticalSprintIntent = tacticalCandidate
+    ? Math.min(0.7, tacticalSprintIntent + dt)
+    : Math.max(0, tacticalSprintIntent - dt * 3.5);
+  const wantsTacticalSprint = tacticalCandidate && tacticalSprintIntent >= 0.4;
   const movement = {
     forward: forwardAxis,
     strafe: strafeAxis,
@@ -3835,6 +3841,8 @@ function tick() {
       speed,
       grounded: player.isGrounded,
       sprinting,
+      tacticalSprinting: player.state.movementState === 'tactical-sprint',
+      movementState: player.state.movementState,
       moving,
     });
     // Update the world lens after the weapon blend, so both render the same frame.
