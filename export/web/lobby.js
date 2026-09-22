@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MAPS, findMap, randomBakedMapId } from './maps.js';
 import { WEAPONS } from './weapons.js';
+import { loadSettings as loadRuntimeSettings, saveSettings as saveRuntimeSettings } from './settings-runtime.js';
 
 const LOADOUT_ATTACHMENTS = Object.freeze({
   standard: Object.freeze({ id: 'standard', name: 'STANDARD', detail: 'Factory configuration', magScale: 1, reloadScale: 1 }),
@@ -13,7 +14,6 @@ const lobby = document.getElementById('merk-lobby');
 if (lobby) {
   const nav = [...lobby.querySelectorAll('[data-lobby-nav]')];
   const views = [...lobby.querySelectorAll('[data-lobby-view]')];
-  const storageKey = 'merk-of-duty.ui-settings.v1';
   const mapKey = 'merk-of-duty.selected-map.v1';
   const loadoutsKey = 'merk-of-duty.loadouts.v2';
   const activeClassKey = 'merk-of-duty.active-class.v2';
@@ -156,24 +156,31 @@ if (lobby) {
       if (panel) panel.hidden = false;
     }
   };
+  const outputForSetting = (key, value) => {
+    if (key === 'fov') return `${value}°`;
+    if (key === 'sensitivity' || key === 'ads') return `${Number(value).toFixed(1)}×`;
+    if (['master','music','effects'].includes(key)) return `${value}%`;
+    return String(value);
+  };
   const loadSettings = () => {
-    try {
-      const saved = JSON.parse(safeStorage?.getItem(storageKey) || '{}');
-      lobby.querySelectorAll('[data-setting-key]').forEach((input) => {
-        if (saved[input.dataset.settingKey] != null) input.value = saved[input.dataset.settingKey];
-      });
-      const rendererPreset = safeStorage?.getItem('hijacked.graphics');
-      const quality = lobby.querySelector('[data-setting-key="quality"]');
-      if (quality && rendererPreset) quality.value = ({ quality: 'HIGH', auto: 'BALANCED', performance: 'PERFORMANCE' })[rendererPreset] || quality.value;
-    } catch { /* local settings are optional */ }
+    const saved = loadRuntimeSettings(safeStorage);
+    lobby.querySelectorAll('[data-setting-key]').forEach((input) => {
+      if (saved[input.dataset.settingKey] != null) input.value = saved[input.dataset.settingKey];
+      const output = lobby.querySelector(`[data-setting-output="${input.dataset.settingKey}"]`);
+      if (output) output.textContent = outputForSetting(input.dataset.settingKey, input.value);
+    });
+    return saved;
   };
   const saveSettings = () => {
     const values = Object.fromEntries([...lobby.querySelectorAll('[data-setting-key]')].map((input) => [input.dataset.settingKey, input.value]));
-    try {
-      safeStorage?.setItem(storageKey, JSON.stringify(values));
-      const rendererPreset = ({ HIGH: 'quality', BALANCED: 'auto', PERFORMANCE: 'performance' })[values.quality];
-      if (rendererPreset) safeStorage?.setItem('hijacked.graphics', rendererPreset);
-    } catch { /* private browsing */ }
+    const saved = saveRuntimeSettings(values, safeStorage);
+    const status = lobby.querySelector('[data-settings-status]');
+    if (status) {
+      status.textContent = 'SETTINGS APPLIED';
+      status.dataset.saved = 'true';
+      setTimeout(() => { status.dataset.saved = 'false'; }, 1200);
+    }
+    return saved;
   };
 
   let weaponPreview = null;
@@ -486,7 +493,12 @@ if (lobby) {
   lobby.querySelectorAll('[data-lobby-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.lobbyMode)));
   lobby.querySelectorAll('[data-lobby-map]').forEach((button) => button.addEventListener('click', () => setMap(button.dataset.lobbyMap)));
   lobby.querySelectorAll('[data-setting-tab]').forEach((button) => button.addEventListener('click', () => { lobby.querySelectorAll('[data-setting-tab]').forEach((tab) => { tab.dataset.active = String(tab === button); }); lobby.querySelectorAll('[data-setting-panel]').forEach((panel) => { panel.hidden = panel.dataset.settingPanel !== button.dataset.settingTab; }); }));
-  lobby.querySelectorAll('[data-setting-key]').forEach((input) => input.addEventListener('input', () => { const output = lobby.querySelector(`[data-setting-output="${input.dataset.settingKey}"]`); if (output) output.textContent = input.dataset.settingKey === 'fov' ? `${input.value}°` : `${input.value}×`; }));
+  lobby.querySelectorAll('[data-setting-key]').forEach((input) => input.addEventListener('input', () => {
+    const output = lobby.querySelector(`[data-setting-output="${input.dataset.settingKey}"]`);
+    if (output) output.textContent = outputForSetting(input.dataset.settingKey, input.value);
+    const status = lobby.querySelector('[data-settings-status]');
+    if (status) { status.textContent = 'UNSAVED CHANGES'; status.dataset.saved = 'false'; }
+  }));
   document.addEventListener('keydown', (event) => { if (lobby.hidden) return; if (event.key === 'ArrowDown') { event.preventDefault(); setSelected(selected + 1); } if (event.key === 'ArrowUp') { event.preventDefault(); setSelected(selected - 1); } if (event.key === 'Enter') { event.preventDefault(); activate(); } if (event.key === 'Escape') { event.preventDefault(); openView(''); } });
   loadSettings();
   setSelected(selected);
