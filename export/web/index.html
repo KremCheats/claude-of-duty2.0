@@ -192,6 +192,24 @@
   .merk-auth-card label { display: grid; gap: 5px; color: #9bb0b8; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
   .merk-auth-card input { min-height: 44px; padding: 0 12px; color: #fff; background: #10232d; border: 1px solid #41606b; font: inherit; }
   .merk-auth-card .merk-icon-btn { position: absolute; top: 10px; right: 10px; }
+  .merk-auth-actions { display:flex; gap:8px; }
+  .merk-auth-actions > * { flex:1; }
+  .merk-auth-session { display:grid; gap:4px; padding:12px; border:1px solid rgba(127,255,196,.24); background:rgba(6,26,24,.52); }
+  .merk-auth-session strong { color:#9fffc4; letter-spacing:.08em; }
+  .merk-auth-session small { color:#8298a1; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+  .merk-settings-panel { position:fixed; inset:0; z-index:119; display:grid; place-items:center; padding:18px; background:rgba(1,5,8,.88); backdrop-filter:blur(10px); }
+  .merk-settings-panel[hidden] { display:none; }
+  .merk-settings-card { width:min(760px,100%); max-height:min(88vh,760px); overflow:auto; padding:22px; color:#edf9f5; background:linear-gradient(180deg,rgba(9,24,32,.98),rgba(5,14,20,.98)); border:1px solid rgba(255,100,34,.7); box-shadow:0 24px 90px #000; }
+  .merk-settings-head { display:flex; justify-content:space-between; align-items:start; gap:18px; margin-bottom:18px; }
+  .merk-settings-head h2 { margin:4px 0 0; color:#fff; font-size:24px; letter-spacing:.09em; text-transform:uppercase; }
+  .merk-settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; }
+  .merk-settings-grid label { display:grid; grid-template-columns:1fr minmax(120px,44%); align-items:center; gap:12px; min-height:48px; padding:8px 0; border-bottom:1px solid rgba(180,210,220,.12); color:#aebfc6; font-size:10px; letter-spacing:.09em; text-transform:uppercase; }
+  .merk-settings-grid input,.merk-settings-grid select { width:100%; min-height:40px; accent-color:#ff6422; color:#fff; background:#10232d; border:1px solid #35505b; padding:0 10px; font:inherit; }
+  .merk-settings-grid input[type="range"] { padding:0; }
+  .merk-settings-grid output { color:#ff9a6f; font-size:10px; text-align:right; }
+  .merk-settings-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  .merk-settings-status { margin-right:auto; align-self:center; color:#83a0aa; font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+  @media(max-width:680px){.merk-settings-grid{grid-template-columns:1fr}.merk-settings-card{padding:16px}.merk-settings-grid label{grid-template-columns:1fr minmax(118px,46%)}} 
   .fe-class-preview { display: grid; grid-template-columns: 180px 1fr; gap: 16px; width: min(720px, 94vw); padding: 14px; border: 1px solid #ff642255; background: #071118cc; }
   .fe-class-preview-art { display: grid; place-items: center; min-height: 100px; color: #ff7841; background: radial-gradient(circle, #29404a, #0b171e 70%); text-align: center; font-size: 11px; letter-spacing: .1em; }
   .fe-class-preview-art img { max-width: 100%; max-height: 100px; object-fit: contain; }
@@ -893,17 +911,42 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
     <button type="button" class="fe-btn touch-only" id="touch-restart" hidden>Play again</button>
   </div>
 </div>
+<section id="merk-runtime-settings" class="merk-settings-panel" hidden aria-label="Game settings">
+  <form id="merk-runtime-settings-form" class="merk-settings-card">
+    <div class="merk-settings-head"><div><span class="merk-kicker">MERK SYSTEM // LIVE CONFIGURATION</span><h2>Options</h2></div><button type="button" id="merk-settings-close" class="merk-icon-btn" aria-label="Close">×</button></div>
+    <div class="merk-settings-grid">
+      <label>Look sensitivity <span><input id="merk-settings-sensitivity" type="range" min="0.4" max="2.5" step="0.1"><output id="merk-settings-sensitivity-out"></output></span></label>
+      <label>ADS sensitivity <span><input id="merk-settings-ads" type="range" min="0.4" max="2" step="0.1"><output id="merk-settings-ads-out"></output></span></label>
+      <label>Field of view <span><input id="merk-settings-fov" type="range" min="70" max="120" step="1"><output id="merk-settings-fov-out"></output></span></label>
+      <label>Graphics <select id="merk-settings-quality"><option>HIGH</option><option>BALANCED</option><option>PERFORMANCE</option></select></label>
+      <label>Frame target <select id="merk-settings-fps"><option>30 FPS</option><option>60 FPS</option><option>120 FPS</option><option>UNLIMITED</option></select></label>
+      <label>Crosshair <select id="merk-settings-crosshair"><option>DEFAULT</option><option>CLASSIC</option><option>DOT</option></select></label>
+      <label>HUD <select id="merk-settings-hud"><option>STANDARD</option><option>MINIMAL</option></select></label>
+      <label>Damage indicators <select id="merk-settings-damage"><option>ON</option><option>OFF</option></select></label>
+      <label>Invert Y <select id="merk-settings-invert"><option>OFF</option><option>ON</option></select></label>
+      <label>Auto sprint <select id="merk-settings-autosprint"><option>ON</option><option>OFF</option></select></label>
+      <label>Vibration <select id="merk-settings-vibration"><option>ON</option><option>OFF</option></select></label>
+      <label>Control layout <select id="merk-settings-layout"><option>STANDARD</option><option>TACTICAL</option><option>LEFT-HANDED</option></select></label>
+      <label>Master volume <span><input id="merk-settings-master" type="range" min="0" max="100" step="1"><output id="merk-settings-master-out"></output></span></label>
+      <label>Effects volume <span><input id="merk-settings-effects" type="range" min="0" max="100" step="1"><output id="merk-settings-effects-out"></output></span></label>
+      <label>Music volume <span><input id="merk-settings-music" type="range" min="0" max="100" step="1"><output id="merk-settings-music-out"></output></span></label>
+    </div>
+    <div class="merk-settings-actions"><span id="merk-settings-status" class="merk-settings-status">CHANGES APPLY IMMEDIATELY</span><button type="button" class="merk-secondary" id="merk-settings-reset">RESET</button><button type="submit" class="merk-primary">SAVE & RETURN</button></div>
+  </form>
+</section>
 <section id="merk-auth-panel" class="merk-auth-panel" hidden aria-label="Account sign in">
   <form id="merk-auth-form" class="merk-auth-card">
     <button type="button" id="merk-auth-close" class="merk-icon-btn" aria-label="Close">×</button>
     <span class="merk-kicker">MERK NETWORK // ACCOUNT</span>
     <h2 id="merk-auth-title">Sign in</h2>
-    <p id="merk-auth-status">Sign in to save your profile and play online.</p>
-    <label>Email<input id="merk-auth-email" type="email" autocomplete="email" required maxlength="254"></label>
-    <label id="merk-auth-name-label" hidden>Display name<input id="merk-auth-name" type="text" autocomplete="nickname" maxlength="24"></label>
-    <label>Password<input id="merk-auth-password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label>
-    <button type="submit" class="merk-primary" id="merk-auth-submit">Sign in</button>
-    <button type="button" class="merk-secondary" id="merk-auth-toggle">Create an account</button>
+    <p id="merk-auth-status">Sign in to sync progression, settings and online identity.</p>
+    <div id="merk-auth-session" class="merk-auth-session" hidden><strong id="merk-auth-session-name"></strong><small>SECURE SESSION ACTIVE</small></div>
+    <label>Email<input id="merk-auth-email" type="email" inputmode="email" autocomplete="email" required maxlength="254"></label>
+    <label id="merk-auth-name-label" hidden>Display name<input id="merk-auth-name" type="text" autocomplete="nickname" maxlength="18"></label>
+    <label>Password<input id="merk-auth-password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"><small>12+ characters</small></label>
+    <label id="merk-auth-confirm-label" hidden>Confirm password<input id="merk-auth-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
+    <div class="merk-auth-actions"><button type="submit" class="merk-primary" id="merk-auth-submit">Sign in</button><button type="button" class="merk-secondary" id="merk-auth-toggle">Create account</button></div>
+    <button type="button" class="merk-secondary" id="merk-auth-logout" hidden>Sign out</button>
   </form>
 </section>
 <div id="scope" data-on="false"><div class="scope-side left"></div><div class="scope-side right"></div><div class="scope-cap top"></div><div class="scope-cap bottom"></div><img id="scope-lens" alt=""></div>
