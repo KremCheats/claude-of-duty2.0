@@ -153,6 +153,16 @@ export class PlayerController {
       this.radius,
       this.crouchHeight,
     );
+    this.proneHeight = clamp(
+      numberOr(options.proneHeight, 36),
+      this.radius * 2 + 0.01,
+      this.crouchHeight,
+    );
+    this.proneEyeHeight = clamp(
+      numberOr(options.proneEyeHeight, 28),
+      this.radius,
+      this.proneHeight,
+    );
 
     this.gravity = Math.max(0, numberOr(options.gravity, 980));
     this.jumpHeight = Math.max(0, numberOr(options.jumpHeight, 110));
@@ -230,6 +240,7 @@ export class PlayerController {
     this.onFloor = false;
     this.grounded = false;
     this.crouched = false;
+    this.prone = false;
     this.onLadder = false;
     this.enabled = true;
     this._accumulator = 0;
@@ -422,6 +433,7 @@ export class PlayerController {
       velocity: this.velocity,
       grounded: this.onFloor,
       crouched: this.crouched,
+      prone: this.prone,
       movementState: this.stateName, slideTimer: this.slideTimer, cameraFovOffset: this.cameraFovOffset,
       onLadder: this.onLadder,
       worldReady: this.worldReady,
@@ -445,7 +457,7 @@ export class PlayerController {
   }
 
   get eyeHeight() {
-    return this.crouched ? this.crouchEyeHeight : this._standingEyeHeight;
+    return this.prone ? this.proneEyeHeight : this.crouched ? this.crouchEyeHeight : this._standingEyeHeight;
   }
 
   set eyeHeight(value) {
@@ -453,7 +465,7 @@ export class PlayerController {
   }
 
   get currentHeight() {
-    return this.crouched ? this.crouchHeight : this.height;
+    return this.prone ? this.proneHeight : this.crouched ? this.crouchHeight : this.height;
   }
 
   _segmentLength(height) {
@@ -461,7 +473,7 @@ export class PlayerController {
   }
 
   get _eyeHeight() {
-    return this.crouched ? this.crouchEyeHeight : this._standingEyeHeight;
+    return this.prone ? this.proneEyeHeight : this.crouched ? this.crouchEyeHeight : this._standingEyeHeight;
   }
 
   _stepFixed(dt) {
@@ -570,9 +582,13 @@ export class PlayerController {
   _updateHorizontalVelocity(dt) {
     this._wishDirection(_wish);
 
-    const speed = this.crouched
-      ? this.crouchSpeed
-      : (this.input.sprint ? this.sprintSpeed : this.moveSpeed);
+    const speed = this.prone
+      ? this.movement.proneSpeed
+      : this.crouched
+        ? this.crouchSpeed
+        : this.input.tacticalSprint
+          ? this.movement.tacticalSprintSpeed
+          : (this.input.sprint ? this.sprintSpeed : this.moveSpeed);
     _wish.multiplyScalar(speed);
 
     const acceleration = this.onFloor ? this.groundAcceleration : this.airAcceleration;
@@ -583,7 +599,22 @@ export class PlayerController {
   }
 
   _updateCrouchState() {
-    const wantCrouch = this.input.crouch;
+    const wantProne = Boolean(this.input.prone);
+    const wantCrouch = Boolean(this.input.crouch) && !wantProne;
+    if (wantProne) {
+      if (!this.prone) this._setCapsuleHeight(this.proneHeight);
+      this.prone = true;
+      this.crouched = true;
+      return;
+    }
+    if (this.prone) {
+      const nextHeight = wantCrouch ? this.crouchHeight : this.height;
+      if (!this._canUseHeight(nextHeight)) return;
+      this._setCapsuleHeight(nextHeight);
+      this.prone = false;
+      this.crouched = wantCrouch;
+      return;
+    }
     if (wantCrouch && !this.crouched) {
       this._setCapsuleHeight(this.crouchHeight);
       this.crouched = true;
@@ -846,7 +877,7 @@ export class PlayerController {
 
   _syncCamera() {
     const feetY = this.collider.start.y - this.radius;
-    const targetOffset = this.stateName === 'slide' ? -this.movement.slideCameraDrop : (this.landingTimer > 0 ? -this.movement.landingDip * (this.landingTimer / .12) : 0); this.cameraOffsetY += (targetOffset - this.cameraOffsetY) * Math.min(1, this.movement.cameraSmoothing * this.fixedTimeStep); this.cameraFovOffset += (((this.stateName === 'slide' ? this.movement.slideFovBoost : (this.stateName === 'sprint' || this.stateName === 'tactical-sprint' ? this.movement.sprintFovBoost : 0)) - this.cameraFovOffset) * Math.min(1, this.movement.cameraSmoothing * this.fixedTimeStep)); this.camera.position.set(this.collider.start.x, feetY + this._eyeHeight + this.cameraOffsetY, this.collider.start.z); if (this.camera.isPerspectiveCamera) this.camera.userData.movementFovOffset=this.cameraFovOffset;
+    const targetOffset = this.stateName === 'slide' ? -this.movement.slideCameraDrop : (this.landingTimer > 0 ? -this.movement.landingDip * (this.landingTimer / .12) : 0); this.cameraOffsetY += (targetOffset - this.cameraOffsetY) * Math.min(1, this.movement.cameraSmoothing * this.fixedTimeStep); const desiredFov = this.stateName === 'slide' ? this.movement.slideFovBoost : this.stateName === 'tactical-sprint' ? this.movement.tacticalSprintFovBoost : this.stateName === 'sprint' ? this.movement.sprintFovBoost : 0; this.cameraFovOffset += ((desiredFov - this.cameraFovOffset) * Math.min(1, this.movement.cameraSmoothing * this.fixedTimeStep)); this.camera.position.set(this.collider.start.x, feetY + this._eyeHeight + this.cameraOffsetY, this.collider.start.z); if (this.camera.isPerspectiveCamera) this.camera.userData.movementFovOffset=this.cameraFovOffset;
   }
 }
 
