@@ -293,3 +293,93 @@
   .lobby-settings-panel input,.lobby-settings-panel select{min-width:140px}
   .settings-group-head small{display:none}
 }
+
+
+/* Professional pause and HUD v1.5 */
+#blocker[data-screen="pause"] .fe-content{width:min(960px,94vw);max-width:none;align-items:stretch}
+#blocker[data-screen="pause"] .fe-content>header,
+#blocker[data-screen="pause"] .fe-controls{display:none!important}
+#blocker[data-screen="pause"] .fe-pause{width:100%;align-items:stretch!important;gap:0!important}
+.pause-command{
+  width:100%;overflow:hidden;border:1px solid rgba(168,194,205,.24);
+  background:linear-gradient(145deg,rgba(6,16,22,.98),rgba(2,7,11,.97));
+  box-shadow:0 28px 90px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.025)
+}
+.pause-command-head{
+  display:flex;justify-content:space-between;align-items:end;gap:22px;padding:22px 24px 16px;
+  border-bottom:1px solid rgba(168,194,205,.16);
+  background:linear-gradient(90deg,rgba(255,105,30,.10),transparent 48%)
+}
+.pause-command-head .fe-heading{margin:3px 0 2px;font-size:34px;letter-spacing:.12em}
+.pause-kicker{color:#ff884a;font-size:9px;letter-spacing:.22em}
+.pause-match-card{display:grid;gap:2px;min-width:210px;text-align:right}
+.pause-match-card small{color:#738790;font-size:8px;letter-spacing:.18em}
+.pause-match-card strong{color:#fff;font-size:15px;letter-spacing:.12em}
+.pause-match-card span{color:#ff884a;font-size:9px;letter-spacing:.13em}
+.pause-command-body{display:grid;grid-template-columns:310px 1fr;gap:0}
+#blocker[data-screen="pause"] .fe-buttons{
+  max-height:none!important;display:grid;gap:2px;padding:16px!important;border-right:1px solid rgba(168,194,205,.14)
+}
+#blocker[data-screen="pause"] .fe-btn{
+  width:100%;height:42px;line-height:42px;text-align:left;padding-left:18px
+}
+#blocker[data-screen="pause"] .fe-btn::before{
+  -webkit-mask:none;mask:none;background:rgba(255,255,255,.035);border-left:2px solid transparent
+}
+#blocker[data-screen="pause"] .fe-btn:hover::before,
+#blocker[data-screen="pause"] .fe-btn:focus-visible::before{
+  background:linear-gradient(90deg,rgba(255,105,30,.38),rgba(255,105,30,.04));
+  border-left-color:#ff6e2d
+}
+#blocker[data-screen="pause"] .pause-primary::before{background:linear-gradient(90deg,rgba(255,105,30,.32),rgba(255,105,30,.06));border-left-color:#ff6e2d}
+#blocker[data-screen="pause"] .pause-danger{color:#dca8a4;margin-top:7px}
+#blocker[data-screen="pause"] .pause-danger::before{background:rgba(107,26,25,.16)}
+.pause-intel{display:grid;align-content:start;gap:11px;padding:24px 28px;color:#b9c7cc}
+.pause-intel>small{color:#778b93;font-size:9px;letter-spacing:.18em}
+.pause-intel>strong{color:#fff;font-size:28px;letter-spacing:.06em}
+.pause-intel>div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(168,194,205,.12);font-size:10px;letter-spacing:.13em}
+.pause-intel>div b{color:#f2f5f6}
+.pause-intel p{max-width:42ch;margin:10px 0 0;color:#71858e;font-size:10px;line-height:1.5;letter-spacing:.04em}
+
+body.hud-minimal #hud-minimap,
+body.hud-minimal #hud-compass,
+body.hud-minimal #killfeed,
+body.hud-minimal #medals,
+body.hud-minimal #hud-equipment{opacity:0!important;pointer-events:none!important}
+body.damage-indicators-off #damage-direction{display:none!important}
+body[data-crosshair="DOT"] #crosshair i{display:none!important}
+body[data-crosshair="DOT"] #crosshair::after{width:4px;height:4px;margin:-2px;box-shadow:0 0 3px #000}
+body[data-crosshair="CLASSIC"] #crosshair{--cross-gap:5px}
+body[data-crosshair="CLASSIC"] #crosshair::after{display:none}
+body[data-crosshair="CLASSIC"] #crosshair i{width:9px;height:1px}
+
+/* Mobile control-layout presets. Inline HUD-editor positions still win. */
+body[data-control-layout="TACTICAL"] .touch-crouch:not([style*="left"]){right:calc(var(--touch-right) + 80px);bottom:calc(var(--touch-bottom) + 150px)}
+body[data-control-layout="TACTICAL"] .touch-melee:not([style*="left"]){left:auto;right:calc(var(--touch-right) + 12px);bottom:calc(var(--touch-bottom) + 20px)}
+body[data-control-layout="LEFT-HANDED"] .touch-move:not([style*="left:"]){left:auto;right:var(--touch-right)}
+body[data-control-layout="LEFT-HANDED"] .touch-look{inset:0 44% 0 0}
+body[data-control-layout="LEFT-HANDED"] .touch-fire:not([style*="left"]){right:auto;left:calc(var(--touch-left) + 69px)}
+body[data-control-layout="LEFT-HANDED"] .touch-aim:not([style*="left"]){right:auto;left:calc(var(--touch-left) + 167px)}
+body[data-control-layout="LEFT-HANDED"] .touch-jump:not([style*="left"]){right:auto;left:var(--touch-left)}
+body[data-control-layout="LEFT-HANDED"] .touch-crouch:not([style*="left"]){right:auto;left:calc(var(--touch-left) + 14px)}
+body[data-control-layout="LEFT-HANDED"] .touch-reload:not([style*="left"]){right:auto;left:calc(var(--touch-left) + 94px)}
+body[data-control-layout="LEFT-HANDED"] .touch-slide:not([style*="left"]){right:auto;left:calc(var(--touch-left) + 8px)}
+body[data-control-layout="LEFT-HANDED"] .touch-prone:not([style*="left"]){right:auto;left:calc(var(--touch-left) + 72px)}
+
+@media(max-height:560px) and (orientation:landscape){
+  #blocker[data-screen="pause"] .fe-content{width:100vw;height:100svh;max-height:none;padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));box-sizing:border-box}
+  .pause-command{height:100%;display:grid;grid-template-rows:auto 1fr}
+  .pause-command-head{padding:10px 16px 8px}
+  .pause-command-head .fe-heading{font-size:25px}
+  .pause-command-body{grid-template-columns:280px 1fr;min-height:0}
+  #blocker[data-screen="pause"] .fe-buttons{padding:8px!important;overflow:auto}
+  #blocker[data-screen="pause"] .fe-btn{height:34px;line-height:34px;font-size:10px}
+  .pause-intel{padding:14px 18px;gap:6px}
+  .pause-intel>strong{font-size:22px}
+  .pause-intel>div{padding:6px 0}
+}
+@media(max-width:620px),(orientation:portrait){
+  .pause-command-body{grid-template-columns:1fr}
+  .pause-intel{display:none}
+  .pause-match-card{min-width:0}
+}
