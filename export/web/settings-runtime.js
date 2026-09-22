@@ -39,7 +39,10 @@ export function normalizeSettings(input = {}) {
     invert: choice(input.invert, ['OFF','ON'], DEFAULT_SETTINGS.invert),
     assist: choice(input.assist, ['ON','OFF'], DEFAULT_SETTINGS.assist),
     layout: choice(input.layout, ['STANDARD','TACTICAL','LEFT-HANDED'], DEFAULT_SETTINGS.layout),
-    autoSprint: choice(input.autoSprint ?? input.sprint, ['ON','OFF','AUTO SPRINT'], DEFAULT_SETTINGS.autoSprint) === 'AUTO SPRINT' ? 'ON' : choice(input.autoSprint, ['ON','OFF'], DEFAULT_SETTINGS.autoSprint),
+    autoSprint: (() => {
+      const value = choice(input.autoSprint ?? input.sprint, ['ON','OFF','AUTO SPRINT'], DEFAULT_SETTINGS.autoSprint);
+      return value === 'AUTO SPRINT' ? 'ON' : value;
+    })(),
     gyro: choice(input.gyro, ['OFF','ON'], DEFAULT_SETTINGS.gyro),
     vibration: choice(input.vibration === true ? 'ON' : input.vibration === false ? 'OFF' : input.vibration, ['ON','OFF'], DEFAULT_SETTINGS.vibration),
     quality: choice(input.quality ?? input.graphics, ['HIGH','BALANCED','PERFORMANCE'], DEFAULT_SETTINGS.quality),
