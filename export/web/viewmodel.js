@@ -100,6 +100,14 @@ const SLIDE_POSE = Object.freeze({
   y: -1.65,
   z: 0.35,
 });
+const PRONE_POSE = Object.freeze({
+  pitch: -0.08,
+  yaw: 0.05,
+  roll: -0.08,
+  x: 0.18,
+  y: -1.25,
+  z: 0.28,
+});
 
 // How the walk bob changes as sprintBlend rises: stride rate drops by `slow`,
 // lateral and vertical travel grow by `widen` and `lift`, and the gun rolls
@@ -258,6 +266,9 @@ export class Viewmodel {
     this.sprintBlend = 0;
     this.tacticalSprintBlend = 0;
     this.slideBlend = 0;
+    this.proneBlend = 0;
+    this.equipTime = 0;
+    this.equipDuration = 0.24;
     this.pivotShift = new THREE.Vector3();
     this.sprintEuler = new THREE.Euler();
     this.bobTime = 0;
@@ -1063,6 +1074,13 @@ export class Viewmodel {
     return true;
   }
 
+  beginEquip({ duration = 0.24 } = {}) {
+    this.equipDuration = Math.max(0.08, Number(duration) || 0.24);
+    this.equipTime = this.equipDuration;
+    this.resetAiming();
+    return true;
+  }
+
   setAiming(aiming) {
     this.aiming = Boolean(aiming);
   }
@@ -1085,6 +1103,8 @@ export class Viewmodel {
     this.rechambering = false;
     this.pendingRechamber = needsChamber;
     this.throwPhase = null;
+    this.shotKick = 0;
+    this.proneBlend = 0;
     this.meleeStruck = this.throwReleased = true;
     this.showSpareMagazine(false);
     if (this.knifeRoot) this.knifeRoot.visible = false;
@@ -1152,6 +1172,7 @@ export class Viewmodel {
     const sprinting = Boolean(state.sprinting) && moving;
     const tacticalSprinting = Boolean(state.tacticalSprinting) && sprinting;
     const sliding = state.movementState === 'slide';
+    const prone = state.movementState === 'prone';
 
     // Smoothed look velocity drives the weapon lag (sway) behind the camera.
     const safeDt = Math.max(dt, 1e-4);
@@ -1187,6 +1208,13 @@ export class Viewmodel {
       13,
       dt,
     );
+    this.proneBlend = damp(
+      this.proneBlend,
+      prone && !this.aiming && !this.reloading ? 1 : 0,
+      10,
+      dt,
+    );
+    this.equipTime = Math.max(0, this.equipTime - dt);
     // Reloading, a melee or a throw cancels the sight picture, as in the game.
     this.aimBlend = this.adsTransition.update(dt, this.aiming && !this.reloading && !this.meleeing && !this.throwing);
     if (this.scope) {
@@ -1219,13 +1247,15 @@ export class Viewmodel {
     const lagScale = aimScale * (1 - sprint * 0.6);
     const tactical = this.tacticalSprintBlend;
     const slide = this.slideBlend;
+    const pronePose = this.proneBlend;
+    const equip = this.equipDuration > 0 ? Math.pow(clamp(this.equipTime / this.equipDuration, 0, 1), 1.7) : 0;
     const sprintPitch = THREE.MathUtils.lerp(SPRINT_POSE.pitch, TACTICAL_SPRINT_POSE.pitch, tactical);
     const sprintYaw = THREE.MathUtils.lerp(SPRINT_POSE.yaw, TACTICAL_SPRINT_POSE.yaw, tactical);
     const sprintRoll = THREE.MathUtils.lerp(SPRINT_POSE.roll, TACTICAL_SPRINT_POSE.roll, tactical);
     this.sprintEuler.set(
-      sprintPitch * sprint + SLIDE_POSE.pitch * slide,
-      sprintYaw * sprint + SLIDE_POSE.yaw * slide,
-      sprintRoll * sprint + SLIDE_POSE.roll * slide,
+      sprintPitch * sprint + SLIDE_POSE.pitch * slide + PRONE_POSE.pitch * pronePose - equip * 0.13,
+      sprintYaw * sprint + SLIDE_POSE.yaw * slide + PRONE_POSE.yaw * pronePose + equip * 0.20,
+      sprintRoll * sprint + SLIDE_POSE.roll * slide + PRONE_POSE.roll * pronePose + equip * 0.16,
     );
     this.swayGroup.rotation.set(
       this.swayRot.x * lagScale + this.sprintEuler.x + bobPitch - proceduralKick * 0.012,
@@ -1245,9 +1275,9 @@ export class Viewmodel {
     const sprintY = THREE.MathUtils.lerp(SPRINT_POSE.y, TACTICAL_SPRINT_POSE.y, tactical);
     const sprintZ = THREE.MathUtils.lerp(SPRINT_POSE.z, TACTICAL_SPRINT_POSE.z, tactical);
     this.swayGroup.position.set(
-      this.swayPos.x * lagScale + bobX * aimScale + sprintX * sprint + SLIDE_POSE.x * slide + this.pivotShift.x,
-      this.swayPos.y * lagScale + bobY * aimScale + sprintY * sprint + SLIDE_POSE.y * slide + this.pivotShift.y,
-      sprintZ * sprint + SLIDE_POSE.z * slide + this.pivotShift.z + proceduralKick * 0.72,
+      this.swayPos.x * lagScale + bobX * aimScale + sprintX * sprint + SLIDE_POSE.x * slide + PRONE_POSE.x * pronePose + equip * 1.35 + this.pivotShift.x,
+      this.swayPos.y * lagScale + bobY * aimScale + sprintY * sprint + SLIDE_POSE.y * slide + PRONE_POSE.y * pronePose - equip * 3.2 + this.pivotShift.y,
+      sprintZ * sprint + SLIDE_POSE.z * slide + PRONE_POSE.z * pronePose + equip * 1.1 + this.pivotShift.z + proceduralKick * 0.72,
     );
 
     this.adsGroup.position.copy(this.adsPos).multiplyScalar(this.aimBlend);
