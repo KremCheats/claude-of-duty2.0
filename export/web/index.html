@@ -921,6 +921,9 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
       <label>Field of view <span><input id="merk-settings-fov" type="range" min="70" max="120" step="1"><output id="merk-settings-fov-out"></output></span></label>
       <label>Graphics <select id="merk-settings-quality"><option>HIGH</option><option>BALANCED</option><option>PERFORMANCE</option></select></label>
       <label>Frame target <select id="merk-settings-fps"><option>30 FPS</option><option>60 FPS</option><option>120 FPS</option><option>UNLIMITED</option></select></label>
+      <label>Lighting detail <select id="merk-settings-shadows"><option>HIGH</option><option>LOW</option><option>OFF</option></select></label>
+      <label>Cinematic camera <select id="merk-settings-blur"><option>OFF</option><option>ON</option></select></label>
+      <label>Aim assist <select id="merk-settings-assist"><option>ON</option><option>OFF</option></select></label>
       <label>Crosshair <select id="merk-settings-crosshair"><option>DEFAULT</option><option>CLASSIC</option><option>DOT</option></select></label>
       <label>HUD <select id="merk-settings-hud"><option>STANDARD</option><option>MINIMAL</option></select></label>
       <label>Damage indicators <select id="merk-settings-damage"><option>ON</option><option>OFF</option></select></label>
@@ -1327,7 +1330,10 @@ function updateLightProbes(position) {
   // preserves the lighting response while removing repeated trilinear samples
   // from the hottest part of the frame.
   const now = performance.now();
-  if (!fastBoot || now - lastEnemyProbeUpdateAt >= 50) {
+  const probeInterval = runtimeSettings.shadows === 'HIGH'
+    ? (fastBoot ? 32 : 0)
+    : runtimeSettings.shadows === 'OFF' ? 140 : 60;
+  if (probeInterval === 0 || now - lastEnemyProbeUpdateAt >= probeInterval) {
     lastEnemyProbeUpdateAt = now;
     for (const [enemy, probe] of enemyProbes) {
       if (enemy.dead) continue;
@@ -1999,8 +2005,10 @@ function applyRuntimeSettings(next = loadRuntimeSettings(mapStorage)) {
   document.body.dataset.crosshair = runtimeSettings.crosshair;
   document.body.dataset.controlLayout = runtimeSettings.layout;
   document.body.dataset.motionResponse = runtimeSettings.blur;
+  document.body.dataset.lightingDetail = runtimeSettings.shadows;
   const preset = graphicsPreset(runtimeSettings);
   if (graphics.preset !== preset) graphics.setPreset(preset);
+  graphics.setTargetFps(fpsCap(runtimeSettings) || 60);
   applyGraphicsSettings();
   renderGraphicsSettings();
   for (const slot of weaponSlots.values()) {
@@ -2407,6 +2415,9 @@ const settingsFields = {
   fov: document.getElementById('merk-settings-fov'),
   quality: document.getElementById('merk-settings-quality'),
   fps: document.getElementById('merk-settings-fps'),
+  shadows: document.getElementById('merk-settings-shadows'),
+  blur: document.getElementById('merk-settings-blur'),
+  assist: document.getElementById('merk-settings-assist'),
   crosshair: document.getElementById('merk-settings-crosshair'),
   hud: document.getElementById('merk-settings-hud'),
   damage: document.getElementById('merk-settings-damage'),
@@ -2436,6 +2447,9 @@ function readRuntimeSettingsForm() {
     fov: Number(settingsFields.fov.value),
     quality: settingsFields.quality.value,
     fps: settingsFields.fps.value,
+    shadows: settingsFields.shadows.value,
+    blur: settingsFields.blur.value,
+    assist: settingsFields.assist.value,
     crosshair: settingsFields.crosshair.value,
     hud: settingsFields.hud.value,
     damage: settingsFields.damage.value,
@@ -3938,6 +3952,7 @@ function tick() {
       grounded: player.isGrounded,
       sprinting,
       moving,
+      cinematic: runtimeSettings.blur === 'ON',
     });
     if (weapon.reloading && !viewmodel.reloading) weapon.finishReload();
     weapon.update(dt, { canFire: controlsActive && sprintState.canFire && !viewmodel.meleeing && !viewmodel.throwing && !viewmodel.rechambering && !viewmodel.pendingRechamber });
