@@ -791,7 +791,7 @@ document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:
         </div>
         <div data-setting-panel="account" hidden>
           <div class="settings-group-head"><b>PROFILE</b><small>Synced when signed in</small></div>
-          <label>OPERATIVE NAME <input value="OPERATIVE" maxlength="24" data-setting-key="name"></label>
+          <label>OPERATIVE NAME <input value="OPERATIVE" maxlength="18" data-setting-key="name"></label>
           <label>PARTY PRIVACY <select data-setting-key="privacy"><option>FRIENDS ONLY</option><option>INVITE ONLY</option><option>OPEN</option></select></label>
           <button type="button" class="lobby-inline-account" data-open-auth>OPEN ACCOUNT CENTER</button>
         </div>
@@ -2622,7 +2622,7 @@ function syncProfileCard(profile = {}) {
 async function syncCloudSettings() {
   if (!authSessionActive || !cloudDisplayName) return false;
   const body = {
-    display_name: cloudDisplayName.replace(/^@/, '').slice(0, 24),
+    display_name: cloudDisplayName.replace(/^@/, '').slice(0, 18),
     level: Math.max(1, Number(cloudProfileSnapshot.level) || 1),
     xp: Math.max(0, Number(cloudProfileSnapshot.xp) || 0),
     wins: Math.max(0, Number(cloudProfileSnapshot.wins) || 0),
