@@ -411,3 +411,19 @@ body[data-control-layout="LEFT-HANDED"] .touch-prone:not([style*="left"]){right:
 @media(max-width:650px),(orientation:portrait){
   .lobby-feature-grid,.lobby-feature-grid.compact{grid-template-columns:1fr}
 }
+
+
+/* Ruleset availability and team scoreboard */
+.lobby-mode:disabled{
+  cursor:not-allowed;opacity:.36;filter:saturate(.35);
+  border-color:rgba(160,180,190,.10)!important;
+}
+.lobby-mode:disabled::after{
+  content:"OBJECTIVE DATA PENDING";display:block;margin-top:4px;
+  color:#718189;font-size:7px;letter-spacing:.11em
+}
+.scoreboard-row[data-team="allies"]{border-left:2px solid rgba(112,185,230,.78)}
+.scoreboard-row[data-team="axis"]{border-left:2px solid rgba(226,110,93,.78)}
+.scoreboard-row[data-team="allies"].player{
+  background:linear-gradient(90deg,rgba(76,145,194,.19),rgba(255,255,255,.025))
+}
