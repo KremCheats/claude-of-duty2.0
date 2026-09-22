@@ -1195,7 +1195,7 @@ let waterClock = null;
 // file's adsIdleAmount until a held breath (Shift) steadies it.
 const scopeElement = document.getElementById('scope');
 const scopeLens = document.getElementById('scope-lens');
-const scopeState = { blend: 0, fov: SCOPE.hipFov, swayTime: 0, breath: 0, holding: false, tired: 0 };
+const scopeState = { blend: 0, fov: runtimeSettings.fov, swayTime: 0, breath: 0, holding: false, tired: 0 };
 // World cues: footsteps, landings, impacts, whiz-bys. Samples come from the
 // map's own soundbank when extracted; without them every cue is silent.
 let worldAudio = null;
@@ -1753,6 +1753,7 @@ let frameWorkSampleIndex = 0;
 let frameWorkWarmupUntil = Number.POSITIVE_INFINITY;
 let hudElapsed = 1;
 let lastAdsState = false;
+let lastRenderedAt = 0;
 let deathSource = null;
 let scoreboardHeld = false;
 let matchEndedHandled = false;
@@ -1769,7 +1770,7 @@ const touchControls = new TouchControls({
   onLook: (x, y, sensitivity) => {
     if (!canControlPlayer()) return;
     // CSS pixels make the same thumb gesture independent of device DPI.
-    applyLook(x, y, 0.005 * sensitivity);
+    applyLook(x, y, 0.005 * sensitivity, { touch: true });
   },
   onAction: (action, phase) => {
     if (action === 'frag' && phase === 'cancel') { cancelHeldGrenade(); return; }
@@ -1804,8 +1805,7 @@ touchSensitivity.value = touchControls.sensitivity;
 sensitivityValue.textContent = `${touchControls.sensitivity.toFixed(1)}×`;
 document.getElementById('touch-settings').addEventListener('click', event => event.stopPropagation());
 touchSensitivity.addEventListener('input', () => {
-  touchControls.setSensitivity(touchSensitivity.value);
-  sensitivityValue.textContent = `${touchControls.sensitivity.toFixed(1)}×`;
+  runtimeSettings = saveRuntimeSettings({ ...runtimeSettings, sensitivity: Number(touchSensitivity.value) }, mapStorage);
 });
 const fullscreenButton = document.getElementById('touch-fullscreen');
 fullscreenButton.hidden = !document.fullscreenEnabled;
@@ -1865,13 +1865,16 @@ function canControlPlayer() {
     !(touchControls.mode && scoreboardHeld) && match.phase === 'playing' && !playerHealth?.dead;
 }
 
-function applyLook(x, y, sensitivity = 0.0022) {
-  sensitivity *= zoomLookScale(camera.fov, SCOPE.hipFov);
+function applyLook(x, y, sensitivity = 0.0022, { touch = false } = {}) {
+  const baseScale = touch ? 1 : runtimeSettings.sensitivity;
+  const adsScale = viewmodel?.aimBlend > 0.05 ? runtimeSettings.ads : 1;
+  sensitivity *= baseScale * adsScale * zoomLookScale(camera.fov, runtimeSettings.fov);
+  const vertical = runtimeSettings.invert === 'ON' ? -y : y;
   yawPitch.setFromQuaternion(camera.quaternion);
   yawPitch.y -= x * sensitivity;
-  yawPitch.x = THREE.MathUtils.clamp(yawPitch.x - y * sensitivity, -Math.PI / 2, Math.PI / 2);
+  yawPitch.x = THREE.MathUtils.clamp(yawPitch.x - vertical * sensitivity, -Math.PI / 2, Math.PI / 2);
   camera.quaternion.setFromEuler(yawPitch);
-  viewmodel.addLook(x, y);
+  viewmodel.addLook(x, vertical);
 }
 
 function requestPlay() {
@@ -1914,6 +1917,50 @@ function updateControlHints() {
 }
 
 const weaponEffects = new WeaponEffects(scene);
+
+function applyAudioSettings() {
+  const audio = weaponEffects.audio;
+  if (!audio?.context) return;
+  const master = runtimeSettings.master / 100;
+  const effects = runtimeSettings.effects / 100;
+  const musicLevel = runtimeSettings.music / 100;
+  if (audio.output?.gain) audio.output.gain.value = 0.68 * master * effects;
+  if (audio.uiOutput?.gain) audio.uiOutput.gain.value = 0.5 * master * effects;
+  if (audio.buses?.ambience?.gain) audio.buses.ambience.gain.value = 0.4 * master * effects;
+  if (audio.buses?.music?.gain) audio.buses.music.gain.value = 0.5 * master * musicLevel;
+  if (audio.buses?.voice?.gain) audio.buses.voice.gain.value = 0.6 * master;
+}
+
+function applyRuntimeSettings(next = loadRuntimeSettings(mapStorage)) {
+  runtimeSettings = next;
+  touchControls.setSensitivity(runtimeSettings.sensitivity);
+  touchSensitivity.value = String(runtimeSettings.sensitivity);
+  sensitivityValue.textContent = `${runtimeSettings.sensitivity.toFixed(1)}×`;
+  document.body.classList.toggle('hud-minimal', runtimeSettings.hud === 'MINIMAL');
+  document.body.classList.toggle('damage-indicators-off', runtimeSettings.damage === 'OFF');
+  document.body.dataset.crosshair = runtimeSettings.crosshair;
+  document.body.dataset.controlLayout = runtimeSettings.layout;
+  document.body.dataset.motionResponse = runtimeSettings.blur;
+  const preset = graphicsPreset(runtimeSettings);
+  if (graphics.preset !== preset) graphics.setPreset(preset);
+  applyGraphicsSettings();
+  renderGraphicsSettings();
+  for (const slot of weaponSlots.values()) {
+    slot.viewmodel.baseFov = runtimeSettings.fov;
+    if (slot.viewmodel.aimBlend < 0.01) {
+      slot.viewmodel.camera.fov = runtimeSettings.fov;
+      slot.viewmodel.camera.updateProjectionMatrix();
+    }
+  }
+  if (!viewmodel?.scoped && viewmodel?.aimBlend < 0.01) {
+    scopeState.fov = camera.fov = runtimeSettings.fov;
+    camera.updateProjectionMatrix();
+  }
+  applyAudioSettings();
+}
+
+addEventListener('merk:settings-changed', (event) => applyRuntimeSettings(event.detail));
+applyRuntimeSettings(runtimeSettings);
 // Reload audio is authored into the clip as notetracks, so the cues play from
 // the animation's own timing rather than a hand-written schedule.
 for (const slot of weaponSlots.values()) {
@@ -2122,7 +2169,7 @@ function selectWeapon(id) {
   viewmodel.scene.add(viewmodelProbe);
   viewmodel.scene.visible = !playerHealth?.dead;
   viewmodel.resetAiming();
-  scopeState.fov = camera.fov = SCOPE.hipFov;
+  scopeState.fov = camera.fov = runtimeSettings.fov;
   camera.updateProjectionMatrix();
   crosshair.classList.remove('ads');
   lastAdsState = false;
@@ -2444,7 +2491,7 @@ function clearKeys() {
   viewmodel.resetAiming();
   setScoped(false, null);
   scopeState.holding = false;
-  scopeState.fov = camera.fov = SCOPE.hipFov;
+  scopeState.fov = camera.fov = runtimeSettings.fov;
   camera.updateProjectionMatrix();
 }
 
@@ -2537,7 +2584,7 @@ function setScoped(scoped, definition) {
 // glass sway, returned in radians for this frame.
 function updateScope(dt, { holdBreath = false, active = true } = {}) {
   const scope = activeWeaponSlot.definition.scope ?? null;
-  const target = adsFieldOfView(SCOPE.hipFov, scope?.zoomFov ?? gunplay.ballistics.adsZoomFov ?? viewmodel.adsFov, viewmodel.aimBlend);
+  const target = adsFieldOfView(runtimeSettings.fov, scope?.zoomFov ?? gunplay.ballistics.adsZoomFov ?? viewmodel.adsFov, viewmodel.aimBlend);
   if (target !== scopeState.fov) {
     scopeState.fov = target;
     camera.fov = target;
@@ -2819,7 +2866,7 @@ function getDebugState() {
       fov: debugRound(camera.fov),
       aimBlend: debugRound(viewmodel.aimBlend),
       adsZoomFov: gunplay.ballistics.adsZoomFov,
-      lookSensitivityScale: debugRound(zoomLookScale(camera.fov, SCOPE.hipFov)),
+      lookSensitivityScale: debugRound(zoomLookScale(camera.fov, runtimeSettings.fov)),
       breathHeld: scopeState.holding,
     },
     loadout: { ...loadout },
@@ -3235,6 +3282,7 @@ async function start() {
     worldAudio.load().then(() => {
       music = new MusicPlayer(worldAudio);
       ambience = new AmbienceManager(worldAudio, hints?.ambience ?? [], { bank: `mpl_${activeMap.prefix}.all` });
+      applyAudioSettings();
       if (locked && matchStartCued) ambience.start();
     }).catch((error) => console.warn('World audio unavailable:', error));
     collisionWorld = loadedCollisionWorld;
@@ -3481,7 +3529,7 @@ function tick() {
   });
   if (player && simulationActive) {
     player.update(dt, controlsActive ? { ...movement, sprint: sprintState.sprinting } : {});
-    if (player && !viewmodel.scoped && camera.isPerspectiveCamera) { const targetFov = SCOPE.hipFov + (player.state.cameraFovOffset || 0); if (Math.abs(camera.fov-targetFov)>0.01) { camera.fov += (targetFov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix(); } }
+    if (player && !viewmodel.scoped && camera.isPerspectiveCamera) { const targetFov = runtimeSettings.fov + (player.state.cameraFovOffset || 0); if (Math.abs(camera.fov-targetFov)>0.01) { camera.fov += (targetFov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix(); } }
   }
   realtimeMatch?.update(dt, player, camera);
   if (simulationActive && enemySimulationActive) navigation?.update(1 / 60, dt, 5);
@@ -3699,9 +3747,15 @@ function tick() {
   // The stride bob lives on the camera only for the draw; gameplay reads the
   // steady camera before and after.
   if (!frontend.visible) {
-    viewBob.apply(camera);
-    renderFrame();
-    viewBob.restore(camera);
+    const cap = fpsCap(runtimeSettings);
+    const now = performance.now();
+    const interval = cap > 0 ? 1000 / cap : 0;
+    if (!interval || now - lastRenderedAt >= interval - 0.5) {
+      lastRenderedAt = now;
+      viewBob.apply(camera);
+      renderFrame();
+      viewBob.restore(camera);
+    }
   }
   if (ready && performance.now() >= frameWorkWarmupUntil) {
     frameWorkSamples[frameWorkSampleIndex] = performance.now() - frameWorkStartedAt;
