@@ -2521,6 +2521,9 @@ const authSubmit = document.getElementById('merk-auth-submit');
 const authToggle = document.getElementById('merk-auth-toggle');
 let authMode = 'login';
 let authSessionActive = false;
+let cloudDisplayName = null;
+let cloudProfileSnapshot = { level: 1, xp: 0, wins: 0 };
+let cloudSyncTimer = null;
 function syncIdentity(name, { authenticated = authSessionActive } = {}) {
   const clean = String(name || runtimeSettings.name || 'OPERATIVE').replace(/^@/, '').trim() || 'OPERATIVE';
   document.querySelectorAll('[data-profile-name], .lobby-username').forEach((el) => {
@@ -2552,15 +2555,57 @@ function syncProfileCard(profile = {}) {
   document.querySelectorAll('[data-stat-wins]').forEach((el) => { el.textContent = wins.toLocaleString(); });
   document.querySelectorAll('[data-profile-xp]').forEach((el) => { el.textContent = `${xp.toLocaleString()} XP`; });
 }
+async function syncCloudSettings() {
+  if (!authSessionActive || !cloudDisplayName) return false;
+  const body = {
+    display_name: cloudDisplayName.replace(/^@/, '').slice(0, 24),
+    level: Math.max(1, Number(cloudProfileSnapshot.level) || 1),
+    xp: Math.max(0, Number(cloudProfileSnapshot.xp) || 0),
+    wins: Math.max(0, Number(cloudProfileSnapshot.wins) || 0),
+    profile_json: { settings: runtimeSettings, schema: 1 },
+  };
+  try {
+    const response = await fetch('/api/profile', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+function scheduleCloudSettingsSync() {
+  if (!authSessionActive) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(() => void syncCloudSettings(), 700);
+}
 async function refreshProfileCard() {
   if (!authSessionActive) {
-    syncProfileCard({ level: 1, xp: 0, wins: 0 });
+    cloudProfileSnapshot = { level: 1, xp: 0, wins: 0 };
+    syncProfileCard(cloudProfileSnapshot);
     return;
   }
   try {
     const response = await fetch('/api/profile', { credentials:'same-origin', cache:'no-store' });
     if (!response.ok) return;
-    syncProfileCard(await response.json());
+    const profile = await response.json();
+    cloudProfileSnapshot = {
+      level: Math.max(1, Number(profile.level) || 1),
+      xp: Math.max(0, Number(profile.xp) || 0),
+      wins: Math.max(0, Number(profile.wins) || 0),
+    };
+    syncProfileCard(cloudProfileSnapshot);
+    let cloud = {};
+    try { cloud = typeof profile.profile_json === 'string' ? JSON.parse(profile.profile_json) : (profile.profile_json || {}); } catch {}
+    if (cloud.settings && typeof cloud.settings === 'object') {
+      runtimeSettings = saveRuntimeSettings({ ...runtimeSettings, ...cloud.settings }, mapStorage, { broadcast: false });
+      applyRuntimeSettings(runtimeSettings);
+      renderRuntimeSettingsForm();
+    } else {
+      scheduleCloudSettingsSync();
+    }
   } catch { /* account identity remains usable when profile sync is unavailable */ }
 }
 function renderAuthMode() {
@@ -2584,6 +2629,7 @@ async function refreshAuthStatus() {
     const response = await fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' });
     const data = await response.json();
     authSessionActive = Boolean(data.authenticated);
+    cloudDisplayName = authSessionActive ? data.displayName : null;
     authSession.hidden = !authSessionActive;
     if (authSessionActive) {
       authSessionName.textContent = data.displayName;
@@ -2608,6 +2654,8 @@ authLogout.addEventListener('click', async () => {
   try {
     await fetch('/api/auth', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json'}, body:JSON.stringify({ action:'logout' }) });
     authSessionActive = false;
+    cloudDisplayName = null;
+    clearTimeout(cloudSyncTimer);
     authForm.reset();
     authStatus.textContent = 'Signed out. Guest progression stays on this device.';
     syncIdentity(runtimeSettings.name, { authenticated:false });
@@ -2633,6 +2681,7 @@ authForm.addEventListener('submit', async (event) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Authentication failed');
     authSessionActive = true;
+    cloudDisplayName = data.displayName;
     authSession.hidden = false;
     authSessionName.textContent = data.displayName;
     authStatus.textContent = 'Account connected. Progression sync is active.';
@@ -2647,6 +2696,7 @@ authForm.addEventListener('submit', async (event) => {
 });
 renderAuthMode();
 void refreshAuthStatus();
+addEventListener('merk:settings-changed', scheduleCloudSettingsSync);
 
 function menuAction(name) {
   if (name === 'restart') {
