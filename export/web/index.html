@@ -1818,6 +1818,9 @@ let frameWorkWarmupUntil = Number.POSITIVE_INFINITY;
 let hudElapsed = 1;
 let lastAdsState = false;
 let lastRenderedAt = 0;
+let gyroEnabled = false;
+let gyroLastBeta = null;
+let gyroLastGamma = null;
 let tacticalSprintIntent = 0;
 let deathSource = null;
 let scoreboardHeld = false;
@@ -1936,7 +1939,9 @@ function mobileAimAssistFriction() {
   let bestDot = 0.993;
   for (const enemy of enemies.enemies ?? []) {
     if (enemy.dead || !enemy.root.visible) continue;
-    aimAssistTarget.copy(enemy.root.position).addScaledVector(new THREE.Vector3(0, 1, 0), 48).sub(camera.position);
+    aimAssistTarget.copy(enemy.root.position);
+    aimAssistTarget.y += 48;
+    aimAssistTarget.sub(camera.position);
     const distance = aimAssistTarget.length();
     if (distance < 25 || distance > 1250) continue;
     aimAssistTarget.multiplyScalar(1 / distance);
@@ -1959,6 +1964,53 @@ function applyLook(x, y, sensitivity = 0.0022, { touch = false } = {}) {
   camera.quaternion.setFromEuler(yawPitch);
   viewmodel.addLook(x, vertical);
 }
+
+async function configureGyro() {
+  gyroLastBeta = gyroLastGamma = null;
+  if (runtimeSettings.gyro !== 'ON' || !touchControls.mode || !globalThis.DeviceOrientationEvent) {
+    gyroEnabled = false;
+    document.body.dataset.gyroState = 'off';
+    return false;
+  }
+  try {
+    const request = globalThis.DeviceOrientationEvent.requestPermission;
+    const permission = typeof request === 'function'
+      ? await request.call(globalThis.DeviceOrientationEvent)
+      : 'granted';
+    gyroEnabled = permission === 'granted';
+  } catch {
+    gyroEnabled = false;
+  }
+  document.body.dataset.gyroState = gyroEnabled ? 'active' : 'blocked';
+  return gyroEnabled;
+}
+
+addEventListener('deviceorientation', (event) => {
+  if (!gyroEnabled || !canControlPlayer()) {
+    gyroLastBeta = gyroLastGamma = null;
+    return;
+  }
+  const beta = Number(event.beta);
+  const gamma = Number(event.gamma);
+  if (!Number.isFinite(beta) || !Number.isFinite(gamma)) return;
+  if (gyroLastBeta === null || gyroLastGamma === null) {
+    gyroLastBeta = beta;
+    gyroLastGamma = gamma;
+    return;
+  }
+  let dBeta = THREE.MathUtils.clamp(beta - gyroLastBeta, -5, 5);
+  let dGamma = THREE.MathUtils.clamp(gamma - gyroLastGamma, -5, 5);
+  gyroLastBeta = beta;
+  gyroLastGamma = gamma;
+  const angle = Number(screen.orientation?.angle ?? globalThis.orientation ?? 0);
+  let dx = dGamma;
+  let dy = dBeta;
+  if (Math.abs(angle) === 90) {
+    dx = angle > 0 ? dBeta : -dBeta;
+    dy = angle > 0 ? -dGamma : dGamma;
+  }
+  applyLook(dx, dy, 0.0032, { touch: true });
+}, { passive: true });
 
 function requestPlay() {
   if (!ready) return;
@@ -2045,7 +2097,11 @@ function applyRuntimeSettings(next = loadRuntimeSettings(mapStorage)) {
   applyAudioSettings();
 }
 
-addEventListener('merk:settings-changed', (event) => applyRuntimeSettings(event.detail));
+addEventListener('merk:settings-changed', (event) => {
+  applyRuntimeSettings(event.detail);
+  if (event.detail.gyro === 'ON') void configureGyro();
+  else { gyroEnabled = false; gyroLastBeta = gyroLastGamma = null; }
+});
 applyRuntimeSettings(runtimeSettings);
 // Reload audio is authored into the clip as notetracks, so the cues play from
 // the animation's own timing rather than a hand-written schedule.
