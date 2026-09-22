@@ -120,11 +120,12 @@ export class ViewKick {
   }
 
   /** Kick for one shot. Returns the radians applied, positive pitch is up. */
-  onShot({ aimBlend = 0 } = {}, random = Math.random) {
+  onShot({ aimBlend = 0, scale = 1 } = {}, random = Math.random) {
     const kick = aimBlend > 0.5 ? this.b.adsKick : this.b.hipKick;
     if (!kick) return { pitch: 0, yaw: 0 };
-    let pitch = kick.pitchMin + (kick.pitchMax - kick.pitchMin) * random();
-    let yaw = kick.yawMin + (kick.yawMax - kick.yawMin) * random();
+    const kickScale = clamp(Number(scale) || 1, 0.25, 2);
+    let pitch = (kick.pitchMin + (kick.pitchMax - kick.pitchMin) * random()) * kickScale;
+    let yaw = (kick.yawMin + (kick.yawMax - kick.yawMin) * random()) * kickScale;
     // adsViewKickMinMagnitude keeps aimed shots from landing a null kick.
     const magnitude = Math.hypot(pitch, yaw);
     if (kick.minMagnitude && magnitude > 0 && magnitude < kick.minMagnitude) {
