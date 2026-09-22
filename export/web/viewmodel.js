@@ -1081,8 +1081,12 @@ export class Viewmodel {
     return true;
   }
 
+  get equipping() {
+    return this.equipTime > 0;
+  }
+
   setAiming(aiming) {
-    this.aiming = Boolean(aiming);
+    this.aiming = Boolean(aiming) && !this.equipping;
   }
 
   resetAiming() {
