@@ -1181,6 +1181,7 @@ const probeAt = new THREE.Vector3(Infinity, Infinity, Infinity);
 const sceneSH = new Float32Array(12);
 const enemyProbes = new Map();
 const enemyProbePosition = new THREE.Vector3();
+let lastEnemyProbeUpdateAt = 0;
 
 function updateLightProbes(position) {
   if (!probeVolume) return;
@@ -1195,15 +1196,20 @@ function updateLightProbes(position) {
     probeVolume.applyTo(viewmodelProbe, position.x, position.y, position.z, PROBE_INTENSITY * 1.15);
   }
 
-  // Enemies move independently of the camera, so each samples at its own feet.
-  // Six trilinear lookups per frame is not worth throttling.
-  for (const [enemy, probe] of enemyProbes) {
-    if (enemy.dead) continue;
-    enemy.root.getWorldPosition(enemyProbePosition);
-    // Sample at torso height rather than the feet, which sit in floor contact
-    // shadow and read darker than the body actually is.
-    enemyProbePosition.y += 36;
-    probe.update(probeVolume, enemyProbePosition, sceneSH, PROBE_INTENSITY);
+  // Enemy probes do not need 60/120 Hz updates on mobile. Updating at 20 Hz
+  // preserves the lighting response while removing repeated trilinear samples
+  // from the hottest part of the frame.
+  const now = performance.now();
+  if (!fastBoot || now - lastEnemyProbeUpdateAt >= 50) {
+    lastEnemyProbeUpdateAt = now;
+    for (const [enemy, probe] of enemyProbes) {
+      if (enemy.dead) continue;
+      enemy.root.getWorldPosition(enemyProbePosition);
+      // Sample at torso height rather than the feet, which sit in floor contact
+      // shadow and read darker than the body actually is.
+      enemyProbePosition.y += 36;
+      probe.update(probeVolume, enemyProbePosition, sceneSH, PROBE_INTENSITY);
+    }
   }
 }
 
